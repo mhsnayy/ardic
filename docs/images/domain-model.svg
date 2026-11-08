@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="Domain modeli: Personel Sistemi ve Eğitim Portalı">
+  <defs>
+    <style>
+      .bg { fill: #1b1b1b; }
+      .card { fill: #1f1f1f; stroke: #5a5a5a; stroke-width: 1; }
+      .title { font: 600 18px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #e6e6e6; }
+      .sub { font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #8a8a8a; }
+      .ent { fill: #242424; stroke: #3d3d3d; }
+      .head { fill: #2e2e2e; }
+      .h { font: 700 14px ui-monospace, Consolas, monospace; fill: #f0f0f0; }
+      .r { font: 13px ui-monospace, Consolas, monospace; fill: #cfcfcf; }
+      .pk { font: 600 11px ui-monospace, Consolas, monospace; fill: #e5c07b; }
+      .fk { font: 600 11px ui-monospace, Consolas, monospace; fill: #61afef; }
+      .note { font: 600 11px ui-monospace, Consolas, monospace; fill: #8a8a8a; }
+      .warn { font: 600 11px ui-monospace, Consolas, monospace; fill: #f0883e; }
+      .f2 { font: 600 11px ui-monospace, Consolas, monospace; fill: #a371f7; }
+      .rel { stroke: #8a8a8a; stroke-width: 1.5; fill: none; }
+      .api { stroke: #f0883e; stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
+      .morph { stroke: #a371f7; stroke-width: 1.5; fill: none; }
+      .zone { fill: none; stroke: #a371f7; stroke-width: 1; stroke-dasharray: 6 5; }
+      .lbl { font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #b0b0b0; }
+      .lblApi { font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: #f0883e; }
+    </style>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8a8a8a"/>
+    </marker>
+    <marker id="aApi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f0883e"/>
+    </marker>
+    <marker id="aM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#a371f7"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1200" height="800"/>
+
+  <!-- ============ PERSONEL SİSTEMİ ============ -->
+  <rect class="card" x="20" y="20" width="360" height="760" rx="12"/>
+  <text class="title" x="40" y="52">Personel Sistemi</text>
+  <text class="sub" x="40" y="72">personel-service · Laravel API · PostgreSQL (personel-db)</text>
+
+  <!-- Department -->
+  <rect class="ent" x="40" y="100" width="320" height="84" rx="8"/>
+  <path class="head" d="M48,100 H352 A8,8 0 0 1 360,108 V130 H40 V108 A8,8 0 0 1 48,100 Z"/>
+  <text class="h" x="52" y="120">Department</text>
+  <text class="r" x="52" y="152">id</text><text class="pk" x="348" y="152" text-anchor="end">PK</text>
+  <text class="r" x="52" y="174">name</text><text class="note" x="348" y="174" text-anchor="end">UNIQUE</text>
+
+  <!-- Department 1-N Personnel -->
+  <path class="rel" d="M200,184 V228" marker-end="url(#a)"/>
+  <text class="lbl" x="210" y="211">1 — N</text>
+
+  <!-- Personnel -->
+  <rect class="ent" x="40" y="230" width="320" height="150" rx="8"/>
+  <path class="head" d="M48,230 H352 A8,8 0 0 1 360,238 V260 H40 V238 A8,8 0 0 1 48,230 Z"/>
+  <text class="h" x="52" y="250">Personnel</text>
+  <text class="r" x="52" y="282">id</text><text class="pk" x="348" y="282" text-anchor="end">PK</text>
+  <text class="r" x="52" y="304">first_name</text>
+  <text class="r" x="52" y="326">last_name</text>
+  <text class="r" x="52" y="348">email</text><text class="note" x="348" y="348" text-anchor="end">UNIQUE</text>
+  <text class="r" x="52" y="370">department_id</text><text class="fk" x="348" y="370" text-anchor="end">FK · RESTRICT</text>
+
+  <!-- Kimlik -->
+  <rect class="ent" x="40" y="420" width="320" height="84" rx="8"/>
+  <path class="head" d="M48,420 H352 A8,8 0 0 1 360,428 V450 H40 V428 A8,8 0 0 1 48,420 Z"/>
+  <text class="h" x="52" y="440">Kimlik</text>
+  <text class="r" x="52" y="472">users</text><text class="note" x="348" y="472" text-anchor="end">admin + servis</text>
+  <text class="r" x="52" y="494">personal_access_tokens</text><text class="note" x="348" y="494" text-anchor="end">Sanctum</text>
+
+  <!-- Legend -->
+  <text class="sub" x="40" y="660">Gösterim</text>
+  <text class="pk" x="40" y="684">PK</text><text class="lbl" x="70" y="684">birincil anahtar</text>
+  <text class="fk" x="40" y="704">FK</text><text class="lbl" x="70" y="704">yabancı anahtar</text>
+  <path class="api" d="M40,722 H62"/><text class="lbl" x="70" y="726">servisler arası (REST API)</text>
+  <path class="zone" d="M40,744 H62"/><text class="lbl" x="70" y="748">Faz 2 (bonus)</text>
+
+  <!-- ============ EĞİTİM PORTALI ============ -->
+  <rect class="card" x="420" y="20" width="760" height="760" rx="12"/>
+  <text class="title" x="440" y="52">Eğitim Portalı</text>
+  <text class="sub" x="440" y="72">egitim-portal · Laravel API · PostgreSQL (egitim-db) · + users, personal_access_tokens</text>
+
+  <!-- Education -->
+  <rect class="ent" x="440" y="100" width="300" height="128" rx="8"/>
+  <path class="head" d="M448,100 H732 A8,8 0 0 1 740,108 V130 H440 V108 A8,8 0 0 1 448,100 Z"/>
+  <text class="h" x="452" y="120">Education</text>
+  <text class="r" x="452" y="152">id</text><text class="pk" x="728" y="152" text-anchor="end">PK</text>
+  <text class="r" x="452" y="174">name</text>
+  <text class="r" x="452" y="196">type</text>
+  <text class="r" x="452" y="218">description</text>
+
+  <!-- Education 1-N Assignment -->
+  <path class="rel" d="M740,165 H798" marker-end="url(#a)"/>
+  <text class="lbl" x="750" y="158">1 — N</text>
+
+  <!-- EducationAssignment -->
+  <rect class="ent" x="800" y="100" width="360" height="238" rx="8"/>
+  <path class="head" d="M808,100 H1152 A8,8 0 0 1 1160,108 V130 H800 V108 A8,8 0 0 1 808,100 Z"/>
+  <text class="h" x="812" y="120">EducationAssignment</text>
+  <text class="r" x="812" y="152">id</text><text class="pk" x="1148" y="152" text-anchor="end">PK</text>
+  <text class="r" x="812" y="174">education_id</text><text class="fk" x="1148" y="174" text-anchor="end">FK · CASCADE</text>
+  <text class="r" x="812" y="196">personnel_id</text><text class="warn" x="1148" y="196" text-anchor="end">FK YOK · API</text>
+  <text class="r" x="812" y="218">personnel_name</text><text class="note" x="1148" y="218" text-anchor="end">snapshot</text>
+  <text class="r" x="812" y="240">personnel_email</text><text class="note" x="1148" y="240" text-anchor="end">snapshot</text>
+  <text class="r" x="812" y="262">department_name</text><text class="note" x="1148" y="262" text-anchor="end">snapshot</text>
+  <text class="r" x="812" y="284">status</text><text class="note" x="1148" y="284" text-anchor="end">assigned|in_progress|completed</text>
+  <text class="r" x="812" y="306">assigned_at</text>
+  <text class="r" x="812" y="328">completed_at</text>
+  <text class="note" x="800" y="356">UNIQUE(education_id, personnel_id)</text>
+
+  <!-- Servisler arası: Personnel → personnel_id -->
+  <path class="api" d="M360,300 H400 V376 H780 V191 H798" marker-end="url(#aApi)"/>
+  <text class="lblApi" x="452" y="368">REST API · servis token'ı (personnel:read)</text>
+
+  <!-- ============ FAZ 2 ============ -->
+  <rect class="zone" x="440" y="396" width="720" height="372" rx="10"/>
+  <text class="f2" x="456" y="420">FAZ 2 — İÇERİK (BONUS)</text>
+
+  <!-- Education 1-N EducationContent -->
+  <path class="rel" d="M600,228 V438" marker-end="url(#a)"/>
+  <text class="lbl" x="608" y="300">1 — N</text>
+
+  <!-- EducationContent -->
+  <rect class="ent" x="456" y="440" width="300" height="194" rx="8"/>
+  <path class="head" d="M464,440 H748 A8,8 0 0 1 756,448 V470 H456 V448 A8,8 0 0 1 464,440 Z"/>
+  <text class="h" x="468" y="460">EducationContent</text>
+  <text class="r" x="468" y="492">id</text><text class="pk" x="744" y="492" text-anchor="end">PK</text>
+  <text class="r" x="468" y="514">education_id</text><text class="fk" x="744" y="514" text-anchor="end">FK</text>
+  <text class="r" x="468" y="536">title</text>
+  <text class="r" x="468" y="558">sort_order</text>
+  <text class="r" x="468" y="580">is_required</text>
+  <text class="r" x="468" y="602">contentable_type</text><text class="f2" x="744" y="602" text-anchor="end">morph</text>
+  <text class="r" x="468" y="624">contentable_id</text><text class="f2" x="744" y="624" text-anchor="end">morph</text>
+
+  <!-- morphTo -->
+  <path class="morph" d="M756,610 H778 V455 H798" marker-end="url(#aM)"/>
+  <path class="morph" d="M778,575 H798" marker-end="url(#aM)"/>
+  <path class="morph" d="M778,610 V673 H798" marker-end="url(#aM)"/>
+  <text class="f2" x="800" y="432">morphTo · ContentType arayüzü</text>
+
+  <!-- VideoContent -->
+  <rect class="ent" x="800" y="440" width="340" height="106" rx="8"/>
+  <path class="head" d="M808,440 H1132 A8,8 0 0 1 1140,448 V470 H800 V448 A8,8 0 0 1 808,440 Z"/>
+  <text class="h" x="812" y="460">VideoContent</text>
+  <text class="r" x="812" y="492">media_driver</text><text class="f2" x="1128" y="492" text-anchor="end">MediaSource</text>
+  <text class="r" x="812" y="514">media_path</text>
+  <text class="r" x="812" y="536">duration_seconds</text>
+
+  <!-- DocumentContent -->
+  <rect class="ent" x="800" y="560" width="340" height="84" rx="8"/>
+  <path class="head" d="M808,560 H1132 A8,8 0 0 1 1140,568 V590 H800 V568 A8,8 0 0 1 808,560 Z"/>
+  <text class="h" x="812" y="580">DocumentContent</text>
+  <text class="r" x="812" y="612">media_driver</text><text class="f2" x="1128" y="612" text-anchor="end">MediaSource</text>
+  <text class="r" x="812" y="634">media_path</text>
+
+  <!-- LinkContent -->
+  <rect class="ent" x="800" y="658" width="340" height="62" rx="8"/>
+  <path class="head" d="M808,658 H1132 A8,8 0 0 1 1140,666 V688 H800 V666 A8,8 0 0 1 808,658 Z"/>
+  <text class="h" x="812" y="678">LinkContent</text>
+  <text class="r" x="812" y="710">url</text>
+
+  <!-- Diğer Faz 2 tabloları -->
+  <rect class="ent" x="456" y="650" width="300" height="106" rx="8"/>
+  <path class="head" d="M464,650 H748 A8,8 0 0 1 756,658 V680 H456 V658 A8,8 0 0 1 464,650 Z"/>
+  <text class="h" x="468" y="670">Diğer Faz 2 tabloları</text>
+  <text class="r" x="468" y="702">content_progress</text><text class="note" x="744" y="702" text-anchor="end">atama × içerik</text>
+  <text class="r" x="468" y="724">learning_links</text><text class="note" x="744" y="724" text-anchor="end">token_hash</text>
+  <text class="r" x="468" y="746">media_uploads</text><text class="note" x="744" y="746" text-anchor="end">pending|uploaded</text>
+</svg>
