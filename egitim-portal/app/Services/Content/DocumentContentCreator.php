@@ -12,7 +12,7 @@ class DocumentContentCreator extends MediaContentCreator
         return 'document';
     }
 
-    protected function build(array $attributes): ContentType
+    protected function build(array $attributes, array $data): ContentType
     {
         return DocumentContent::create($attributes);
     }

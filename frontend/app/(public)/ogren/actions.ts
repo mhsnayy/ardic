@@ -11,6 +11,7 @@ export type ProgressActionResult =
 
 const bodySchema = z.object({
   position: z.number().finite().min(0).max(1e6).optional(),
+  // Eski istemciler için kabul edilir; sunucu süreyi artık kullanmaz.
   duration: z.number().finite().positive().max(1e6).optional(),
 });
 

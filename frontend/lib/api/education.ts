@@ -120,7 +120,8 @@ export function requestUpload(
 }
 
 export type ContentInput =
-  | { type: "video" | "document"; title: string; is_required: boolean; upload_id: number | string }
+  | { type: "video"; title: string; is_required: boolean; upload_id: number | string; duration_seconds: number }
+  | { type: "document"; title: string; is_required: boolean; upload_id: number | string }
   | { type: "link"; title: string; is_required: boolean; url: string };
 
 export function createContent(educationId: number, input: ContentInput) {

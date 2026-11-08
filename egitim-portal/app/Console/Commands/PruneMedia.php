@@ -18,7 +18,7 @@ class PruneMedia extends Command
         $cutoff = now()->subHours((int) config('media.prune_after_hours'));
         $count = 0;
 
-        MediaUpload::where('created_at', '<', $cutoff)->each(function (MediaUpload $upload) use ($media, &$count) {
+        MediaUpload::where('created_at', '<', $cutoff)->lazyById()->each(function (MediaUpload $upload) use ($media, &$count) {
             $media->driver($upload->media_driver)->delete($upload->path);
             $upload->delete();
             $count++;

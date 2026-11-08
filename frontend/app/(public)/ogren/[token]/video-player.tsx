@@ -14,6 +14,10 @@ export function VideoPlayer({ token, content }: PlayerProps) {
   const completedRef = useRef(content.progress.completed);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const [note, setNote] = useState(false);
+  const retried = useRef(false);
+  const resumeAt = useRef<number | null>(null);
+  // Süre sunucudan gelir (admin yüklerken tarayıcıdan okunmuş değer).
+  const serverDuration = content.properties.duration_seconds ?? null;
 
   const report = useCallback(async () => {
     const v = ref.current;
@@ -22,7 +26,6 @@ export function VideoPlayer({ token, content }: PlayerProps) {
     try {
       const r = await reportProgressAction(token, content.id, {
         position: v.currentTime,
-        ...(Number.isFinite(v.duration) && v.duration > 0 ? { duration: v.duration } : {}),
       });
       if (!r.ok) {
         if (r.invalid) router.refresh();
@@ -67,10 +70,21 @@ export function VideoPlayer({ token, content }: PlayerProps) {
         playsInline
         src={content.playback_url ?? undefined}
         className="w-full rounded-md bg-black"
+        onError={(e) => {
+          // Oynatma URL'i süresi dolmuş olabilir (403): bir kez yenileyip kaldığı yerden devam et.
+          if (retried.current) return;
+          retried.current = true;
+          const v = e.currentTarget;
+          resumeAt.current = v.currentTime > 0 ? v.currentTime : lastTime.current;
+          router.refresh();
+        }}
         onLoadedMetadata={(e) => {
           const v = e.currentTarget;
-          const p = content.progress.last_position_seconds;
-          if (p > 0 && p < v.duration) {
+          retried.current = false;
+          const p = resumeAt.current ?? content.progress.last_position_seconds;
+          resumeAt.current = null;
+          const total = serverDuration ?? v.duration;
+          if (p > 0 && (!Number.isFinite(total) || p < total)) {
             v.currentTime = p;
             lastTime.current = p;
           }
@@ -98,8 +112,9 @@ export function VideoPlayer({ token, content }: PlayerProps) {
         }}
         onSeeking={(e) => {
           const v = e.currentTarget;
-          if (v.currentTime > localMax.current + 2) {
-            v.currentTime = localMax.current;
+          const limit = serverDuration !== null ? Math.min(localMax.current, serverDuration) : localMax.current;
+          if (v.currentTime > limit + 2) {
+            v.currentTime = limit;
             setNote(true);
             setTimeout(() => setNote(false), 4000);
           }

@@ -46,10 +46,12 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         // Keyed by token hash (behind Next every request shares one IP).
-        RateLimiter::for('learn', fn (Request $request) => Limit::perMinute(120)
-            ->by($request->header('X-Learning-Token')
+        RateLimiter::for('learn', fn (Request $request) => [
+            Limit::perMinute(120)->by($request->header('X-Learning-Token')
                 ? 'learn:'.hash('sha256', (string) $request->header('X-Learning-Token'))
-                : 'learn-ip:'.$request->ip()));
+                : 'learn-ip:'.$request->ip()),
+            Limit::perMinute(600)->by('learn-ip-total:'.$request->ip()),
+        ]);
 
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)
             ->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip())

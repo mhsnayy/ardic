@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Services\Content\ContentCreator;
 use App\Services\Content\ContentCreatorRegistry;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreContentRequest extends FormRequest
 {
@@ -18,8 +19,9 @@ class StoreContentRequest extends FormRequest
 
     public function rules(): array
     {
+        $registry = app(ContentCreatorRegistry::class);
         $rules = [
-            'type' => ['required', 'string', 'in:video,document,link'],
+            'type' => ['required', 'string', Rule::in($registry->kinds())],
             'title' => ['required', 'string', 'max:150'],
             'is_required' => ['sometimes', 'boolean'],
         ];
@@ -34,7 +36,7 @@ class StoreContentRequest extends FormRequest
 
     public function attributes(): array
     {
-        return ['type' => 'tür', 'title' => 'başlık', 'is_required' => 'zorunluluk'];
+        return ['duration_seconds' => 'süre', 'type' => 'tür', 'title' => 'başlık', 'is_required' => 'zorunluluk'];
     }
 
     public function messages(): array

@@ -61,12 +61,16 @@ class UploadReceiveController extends Controller
             $written = false;
         }
 
+        if ($limit->exceeded) { // regardless of what the driver reported
+            $disk->delete($record->path);
+
+            return $this->fail('Dosya izin verilen boyutu aşıyor.', 413);
+        }
+
         if ($written === false) {
             $disk->delete($record->path); // partial file
 
-            return $limit->exceeded
-                ? $this->fail('Dosya izin verilen boyutu aşıyor.', 413)
-                : $this->fail('Dosya kaydedilemedi.', 500);
+            return $this->fail('Dosya kaydedilemedi.', 500);
         }
 
         $size = (int) $disk->size($record->path);

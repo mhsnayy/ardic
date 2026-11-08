@@ -131,7 +131,7 @@ Bir eğitime video (mp4/webm, en çok 200 MB), PDF (en çok 50 MB) veya bağlant
 
 - **Öğrenme linki** `PUBLIC_FRONTEND_URL` ile üretilir.
 - **Raspberry Pi:** Tarayıcı medyayı ve yüklemeyi doğrudan `PUBLIC_EDUCATION_URL` adresinden (8002) yapar; bu adres tarayıcıdan erişilebilir olmalıdır (`localhost` yazmayın).
-- **Temizlik:** `php artisan media:prune` Eğitim Portalı her açıldığında çalışır; içeriğe bağlanmamış, 24 saatten eski yüklemeleri siler. Hata verirse açılışı engellemez.
+- **Temizlik:** `php artisan media:prune` Eğitim Portalı açılışta ve container açıkken saatte bir çalışır; içeriğe bağlanmamış, 24 saatten eski yüklemeleri siler. Hata verirse açılışı engellemez.
 - **Limitler:** Caddy istek gövdesi 210 MB ile sınırlıdır, gövde okuma zaman aşımı 15 dakikadır; PHP `max_execution_time` ve `max_input_time` 600 sn.
 
 ## API özeti

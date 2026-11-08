@@ -20,6 +20,8 @@ class LearningLinkService
     public function issue(EducationAssignment $assignment): array
     {
         return DB::transaction(function () use ($assignment) {
+            // Serialise concurrent issues for the same assignment (BR-9: one active link).
+            EducationAssignment::whereKey($assignment->id)->lockForUpdate()->first();
             $this->revoke($assignment);
 
             $token = Str::random(self::TOKEN_LENGTH); // [A-Za-z0-9], CSPRNG

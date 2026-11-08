@@ -200,4 +200,12 @@ class LearningLinkTest extends TestCase
         $this->learn($t)->assertStatus(429);
         $this->learn(str_repeat('b', 48))->assertNotFound(); // different token, own bucket
     }
+
+    public function test_learn_has_an_ip_wide_ceiling_across_tokens(): void
+    {
+        for ($i = 0; $i < 600; $i++) {
+            $this->learn(str_pad((string) $i, 48, 'x'))->assertNotFound();
+        }
+        $this->learn(str_repeat('z', 48))->assertStatus(429);
+    }
 }

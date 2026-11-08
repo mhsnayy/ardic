@@ -224,8 +224,27 @@ class MediaTest extends TestCase
     private function addContent(string $type, ?string $uploadId, ?Education $e = null, string $title = 'T')
     {
         return $this->postJson('/api/educations/'.($e ?? $this->edu)->id.'/contents', [
-            'type' => $type, 'title' => $title, 'is_required' => true, 'upload_id' => $uploadId,
+            'type' => $type, 'title' => $title, 'is_required' => true, 'upload_id' => $uploadId, 'duration_seconds' => 120.4,
         ], $this->h);
+    }
+
+    public function test_video_duration_is_required_and_bounded(): void
+    {
+        foreach ([null, 0, 0.5, -3, 86401, 'abc'] as $bad) {
+            [$id] = $this->uploaded('video', 'video/mp4', 'DATA');
+            $body = ['type' => 'video', 'title' => 'T', 'upload_id' => $id];
+            if ($bad !== null) {
+                $body['duration_seconds'] = $bad;
+            }
+            $this->postJson("/api/educations/{$this->edu->id}/contents", $body, $this->h)
+                ->assertUnprocessable()->assertJsonValidationErrors(['duration_seconds']);
+        }
+        $this->assertSame(0, VideoContent::count());
+
+        [$id] = $this->uploaded('video', 'video/mp4', 'DATA');
+        $this->postJson("/api/educations/{$this->edu->id}/contents", [
+            'type' => 'video', 'title' => 'T', 'upload_id' => $id, 'duration_seconds' => 86400,
+        ], $this->h)->assertCreated();
     }
 
     public function test_create_video_content_from_upload(): void
@@ -234,13 +253,13 @@ class MediaTest extends TestCase
 
         $this->addContent('video', $id)->assertCreated()
             ->assertJsonPath('data.kind', 'video')
-            ->assertJsonPath('data.properties', ['mime_type' => 'video/mp4', 'size_bytes' => 9, 'duration_seconds' => null]);
+            ->assertJsonPath('data.properties', ['mime_type' => 'video/mp4', 'size_bytes' => 9, 'duration_seconds' => 121]);
 
         $v = VideoContent::first();
         $this->assertSame('local', $v->media_driver);
         $this->assertSame($path, $v->media_path);
         $this->assertSame(9, $v->size_bytes);
-        $this->assertNull($v->duration_seconds);
+        $this->assertSame(121, $v->duration_seconds); // ceil
         Storage::disk('media')->assertExists($path);
     }
 
@@ -396,7 +415,7 @@ class MediaTest extends TestCase
 
         // ... and playback URL too
         $contentId = $this->postJson("http://egitim-portal:8000/api/educations/{$this->edu->id}/contents", [
-            'type' => 'video', 'title' => 'V', 'upload_id' => $r->json('upload_id'),
+            'type' => 'video', 'title' => 'V', 'upload_id' => $r->json('upload_id'), 'duration_seconds' => 30,
         ], $this->h)->assertCreated()->json('data.id');
         $this->assertNotNull($contentId);
     }

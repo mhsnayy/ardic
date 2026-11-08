@@ -17,7 +17,7 @@ import {
 import { notify, selectClass } from "@/components/forms";
 import type { ActionResult, FieldErrors } from "@/lib/action-result";
 import type { ContentKind } from "@/lib/api/types";
-import { formatBytes } from "@/lib/format";
+import { formatBytes, formatDuration } from "@/lib/format";
 import type { UploadTargetResult } from "../content-actions";
 import { contentKinds } from "./content-kinds";
 
@@ -34,8 +34,38 @@ type Props = {
     is_required: boolean;
     upload_id?: number | string;
     url?: string;
+    duration_seconds?: number;
   }) => Promise<ActionResult>;
 };
+
+const DURATION_ERROR = "Video süresi okunamadı. Lütfen MP4 ya da süre bilgisi içeren bir WebM yükleyin.";
+
+/** Yüklemeden önce, tarayıcıda video süresini (sn) okur. Okunamazsa null. */
+function readVideoDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    let done = false;
+    const finish = (value: number | null) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(null), 10000);
+    video.preload = "metadata";
+    video.muted = true;
+    video.onloadedmetadata = () => {
+      const d = video.duration;
+      finish(Number.isFinite(d) && d > 0 ? d : null);
+    };
+    video.onerror = () => finish(null);
+    video.src = objectUrl;
+  });
+}
 
 type UploadResult = { ok: true } | { ok: false; aborted: boolean; message: string };
 
@@ -91,10 +121,36 @@ export function AddContentDialog(props: Props) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const [duration, setDuration] = useState<number | null>(null);
+  const [reading, setReading] = useState(false);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const cancelled = useRef(false);
+  const readSeq = useRef(0);
+
+  async function pickFile(f: File | null, k: ContentKind) {
+    const seq = ++readSeq.current;
+    setFile(f);
+    setDuration(null);
+    setErrors((prev) => ({ ...prev, file: [] }));
+    if (!f || k !== "video") {
+      setReading(false);
+      return;
+    }
+    setReading(true);
+    const d = await readVideoDuration(f);
+    if (seq !== readSeq.current) return;
+    setReading(false);
+    if (d === null || d > 86400) {
+      setErrors((prev) => ({ ...prev, file: [DURATION_ERROR] }));
+    } else {
+      setDuration(Math.round(d) > 0 ? Math.round(d) : 1);
+    }
+  }
 
   function reset() {
+    readSeq.current++;
+    setDuration(null);
+    setReading(false);
     setKind("video");
     setTitle("");
     setRequired(true);
@@ -134,6 +190,10 @@ export function AddContentDialog(props: Props) {
           setErrors({ file: ["Bir dosya seçin."] });
           return;
         }
+        if (kind === "video" && duration === null) {
+          setErrors({ file: [DURATION_ERROR] });
+          return;
+        }
         const target = await props.requestUpload({
           kind,
           filename: file.name,
@@ -159,11 +219,13 @@ export function AddContentDialog(props: Props) {
           title,
           is_required: required,
           upload_id: target.target.upload_id,
+          ...(kind === "video" && duration !== null ? { duration_seconds: duration } : {}),
         });
       }
       if (!result.ok) {
         const fe = { ...(result.fieldErrors ?? {}) };
         if (fe.upload_id) fe.file = fe.upload_id;
+        if (fe.duration_seconds) fe.file = [...(fe.file ?? []), ...fe.duration_seconds];
         setErrors(fe);
         notify(result);
         return;
@@ -195,7 +257,7 @@ export function AddContentDialog(props: Props) {
               disabled={busy}
               onChange={(e) => {
                 setKind(e.target.value as ContentKind);
-                setFile(null);
+                void pickFile(null, "link");
                 setErrors({});
               }}
             >
@@ -214,7 +276,7 @@ export function AddContentDialog(props: Props) {
               value={title}
               disabled={busy}
               required
-              maxLength={255}
+              maxLength={150}
               aria-invalid={!!errors.title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -246,12 +308,15 @@ export function AddContentDialog(props: Props) {
                 accept={accepts[kind]}
                 disabled={busy}
                 aria-invalid={!!errors.file}
-                onChange={(e) => {
-                  setFile(e.target.files?.[0] ?? null);
-                  setErrors((prev) => ({ ...prev, file: [] }));
-                }}
+                onChange={(e) => void pickFile(e.target.files?.[0] ?? null, kind)}
               />
-              {file && <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>}
+              {file && (
+                <p className="text-xs text-muted-foreground">
+                  {formatBytes(file.size)}
+                  {kind === "video" && reading && " · Süre okunuyor..."}
+                  {kind === "video" && duration !== null && ` · Süre: ${formatDuration(duration)}`}
+                </p>
+              )}
               <FieldMsg errors={errors} name="file" />
             </div>
           )}
@@ -279,7 +344,7 @@ export function AddContentDialog(props: Props) {
                 Yüklemeyi iptal et
               </Button>
             )}
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy || reading}>
               {busy ? (uploading ? "Yükleniyor..." : "İşleniyor...") : "Ekle"}
             </Button>
           </div>

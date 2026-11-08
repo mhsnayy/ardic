@@ -16,8 +16,9 @@ abstract class MediaContentCreator implements ContentCreator
     /** @return 'video'|'document' */
     abstract protected function kind(): string;
 
-    /** @param array<string, mixed> $attributes */
-    abstract protected function build(array $attributes): ContentType;
+    /** @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $data  validated request data */
+    abstract protected function build(array $attributes, array $data): ContentType;
 
     public function rules(Education $education): array
     {
@@ -64,7 +65,7 @@ abstract class MediaContentCreator implements ContentCreator
             'media_path' => $upload->path,
             'mime_type' => $upload->mime_type,
             'size_bytes' => $upload->size_bytes,
-        ]);
+        ], $data);
 
         // Attached: drop the upload row so media:prune never touches this file.
         $upload->delete();

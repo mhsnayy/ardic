@@ -42,4 +42,14 @@ php artisan config:cache
 # 5. Baglanmamis eski yuklemeleri temizle (idempotent); hata acilisi engellemez.
 php artisan media:prune || echo "UYARI: media:prune basarisiz, devam ediliyor" >&2
 
+# 6. Container acikken periyodik temizlik (varsayilan saatte bir). Dongu arka
+# planda calisir; FrankenPHP exec ile PID 1 olur, dongu container ile birlikte olur.
+PRUNE_INTERVAL="${MEDIA_PRUNE_INTERVAL:-3600}"
+(
+    while true; do
+        sleep "$PRUNE_INTERVAL"
+        php artisan media:prune || echo "UYARI: media:prune basarisiz" >&2
+    done
+) &
+
 exec "$@"

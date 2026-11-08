@@ -29,7 +29,7 @@ class ProgressRequest extends FormRequest
 
     public function attributes(): array
     {
-        return ['position' => 'konum', 'duration' => 'süre'];
+        return ['position' => 'konum'];
     }
 
     public function messages(): array

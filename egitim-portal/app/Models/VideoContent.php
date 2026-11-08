@@ -34,31 +34,28 @@ class VideoContent extends Model implements ContentType
         return $p->max_position_seconds >= (int) ceil($this->duration_seconds * 0.9);
     }
 
+    /** `duration` may still be sent by old clients; it is ignored (the admin-supplied duration is the only source). */
     public function progressRules(): array
     {
         return [
             'position' => ['required', 'numeric', 'min:0'],
-            'duration' => ['required', 'numeric', 'gt:0'],
         ];
     }
 
     /**
-     * BR-8: accept at most (elapsed * 2) + 5 seconds of forward progress since the last heartbeat.
-     * Rewinding is free; max_position only ever grows.
+     * BR-8: accept at most min(elapsed, 60) * 2 seconds of forward progress since the last heartbeat,
+     * plus a one-off 5 second tolerance on the very first heartbeat. Rewinding is free; max_position only grows.
+     * Elapsed is measured on whole-second timestamps on both sides so the accrual telescopes (no drift from
+     * the second-precision column).
      */
     public function recordProgress(ContentProgress $p, array $input, CarbonInterface $now): void
     {
-        // The player reports the duration once (assumption 3); a stored duration is never overwritten.
-        if ($this->duration_seconds === null) {
-            $reported = (int) ceil((float) $input['duration']);
-            if ($reported > 0 && $reported <= 86400) {
-                $this->duration_seconds = $reported;
-                $this->save();
-            }
+        if ($p->last_heartbeat_at) {
+            $elapsed = min(60, max(0, $now->getTimestamp() - $p->last_heartbeat_at->getTimestamp()));
+            $cap = $p->max_position_seconds + $elapsed * 2;
+        } else {
+            $cap = $p->max_position_seconds + 5;
         }
-
-        $elapsed = $p->last_heartbeat_at ? max(0, $now->getTimestamp() - $p->last_heartbeat_at->getTimestamp()) : 0;
-        $cap = $p->max_position_seconds + $elapsed * 2 + 5;
         $accepted = min((float) $input['position'], (float) $cap);
         if ($this->duration_seconds !== null) {
             $accepted = min($accepted, (float) $this->duration_seconds);

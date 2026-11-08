@@ -14,6 +14,12 @@ class ContentCreatorRegistry
         'document' => DocumentContentCreator::class,
     ];
 
+    /** @return list<string> */
+    public function kinds(): array
+    {
+        return array_keys(self::CREATORS);
+    }
+
     public function has(string $kind): bool
     {
         return isset(self::CREATORS[$kind]);

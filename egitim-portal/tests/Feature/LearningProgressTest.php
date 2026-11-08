@@ -84,9 +84,9 @@ class LearningProgressTest extends TestCase
         return $this->postJson("/api/learn/contents/{$c->id}/progress", $body, ['X-Learning-Token' => $token ?? $this->token]);
     }
 
-    private function beat(EducationContent $c, float $pos, float $dur = 100)
+    private function beat(EducationContent $c, float $pos)
     {
-        return $this->report($c, ['position' => $pos, 'duration' => $dur]);
+        return $this->report($c, ['position' => $pos]);
     }
 
     private function currentStatus(): string
@@ -109,8 +109,8 @@ class LearningProgressTest extends TestCase
         Carbon::setTestNow(now()->addSeconds(10));
 
         $this->beat($v, 500)->assertOk()
-            ->assertJsonPath('data.last_position_seconds', 25)
-            ->assertJsonPath('data.max_position_seconds', 25)
+            ->assertJsonPath('data.last_position_seconds', 20)
+            ->assertJsonPath('data.max_position_seconds', 20)
             ->assertJsonPath('data.completed', false);
         $this->assertSame('in_progress', $this->currentStatus());
     }
@@ -131,10 +131,28 @@ class LearningProgressTest extends TestCase
     public function test_position_is_clamped_to_duration(): void
     {
         $v = $this->video(30);
-        $this->beat($v, 0, 30);
+        $this->beat($v, 0);
+        Carbon::setTestNow(now()->addSeconds(60));
+
+        $this->beat($v, 9999)->assertJsonPath('data.max_position_seconds', 30);
+    }
+
+    public function test_rapid_heartbeats_cannot_accumulate_tolerance(): void
+    {
+        $v = $this->video(1000);
+        for ($i = 0; $i < 100; $i++) {
+            $this->beat($v, 999);
+        }
+        $this->assertLessThanOrEqual(5, ContentProgress::first()->max_position_seconds);
+    }
+
+    public function test_waiting_does_not_bank_seek_allowance(): void
+    {
+        $v = $this->video(10000);
+        $this->beat($v, 0);
         Carbon::setTestNow(now()->addMinutes(10));
 
-        $this->beat($v, 9999, 30)->assertJsonPath('data.max_position_seconds', 30);
+        $this->beat($v, 9000)->assertJsonPath('data.max_position_seconds', 120);
     }
 
     public function test_watching_normally_to_90_percent_completes_video_and_assignment(): void
@@ -169,31 +187,31 @@ class LearningProgressTest extends TestCase
         $this->assertSame('in_progress', $this->currentStatus());
     }
 
-    // ---- duration reporting
+    // ---- duration is admin-supplied (Y1)
 
-    public function test_duration_is_saved_on_first_report_and_never_overwritten(): void
+    public function test_client_duration_is_ignored_and_cannot_complete_early(): void
     {
-        $v = $this->video(null);
-        $this->beat($v, 1, 120)->assertOk();
-        $this->assertSame(120, $v->contentable->fresh()->duration_seconds);
+        $v = $this->video(100);
+        $this->report($v, ['position' => 999, 'duration' => 5])->assertOk()
+            ->assertJsonPath('data.completed', false)
+            ->assertJsonPath('data.max_position_seconds', 5);
+        $this->assertSame(100, $v->contentable->fresh()->duration_seconds);
+        $this->assertSame('in_progress', $this->currentStatus());
 
-        $this->beat($v, 2, 30);
-        $this->assertSame(120, $v->contentable->fresh()->duration_seconds);
-    }
-
-    public function test_unreasonable_duration_is_not_saved_and_video_cannot_complete(): void
-    {
-        $v = $this->video(null);
-        $this->beat($v, 1, 90000)->assertOk()->assertJsonPath('data.completed', false);
-        $this->assertNull($v->contentable->fresh()->duration_seconds);
-    }
-
-    public function test_video_without_known_duration_completes_once_reported(): void
-    {
-        $v = $this->video(null);
-        $this->beat($v, 0, 10);
         Carbon::setTestNow(now()->addSeconds(10));
-        $this->beat($v, 9, 10)->assertJsonPath('data.completed', true);
+        $this->report($v, ['position' => 20, 'duration' => 86400])->assertOk();
+        $this->assertSame(100, $v->contentable->fresh()->duration_seconds);
+    }
+
+    public function test_duration_is_not_required_and_unknown_duration_never_completes(): void
+    {
+        $v = $this->video(null);
+        $this->report($v, ['position' => 1])->assertOk();
+        $this->report($v, ['position' => 3, 'duration' => 10])->assertOk();
+        Carbon::setTestNow(now()->addSeconds(10));
+        $this->report($v, ['position' => 9, 'duration' => 10])->assertOk()
+            ->assertJsonPath('data.completed', false);
+        $this->assertNull($v->contentable->fresh()->duration_seconds);
     }
 
     // ---- BR-6 documents and links
@@ -368,9 +386,8 @@ class LearningProgressTest extends TestCase
     public function test_video_body_validation(): void
     {
         $v = $this->video();
-        $this->report($v, [])->assertUnprocessable()->assertJsonValidationErrors(['position', 'duration']);
+        $this->report($v, [])->assertUnprocessable()->assertJsonValidationErrors(['position']);
         $this->report($v, ['position' => -1, 'duration' => 10])->assertUnprocessable()->assertJsonValidationErrors(['position']);
-        $this->report($v, ['position' => 1, 'duration' => 0])->assertUnprocessable()->assertJsonValidationErrors(['duration']);
         $this->report($v, ['position' => 'abc', 'duration' => 10])->assertUnprocessable()->assertJsonValidationErrors(['position']);
         $this->assertSame(0, ContentProgress::count());
         $this->assertSame('assigned', $this->currentStatus());

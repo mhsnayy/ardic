@@ -60,14 +60,24 @@ export async function requestUploadAction(
 }
 
 const baseContent = {
-  title: z.string().trim().min(1, "Başlık zorunludur.").max(255, "En fazla 255 karakter olabilir."),
+  title: z.string().trim().min(1, "Başlık zorunludur.").max(150, "En fazla 150 karakter olabilir."),
   is_required: z.boolean(),
 };
+const uploadId = z.union([z.number().int().positive(), z.string().min(1)]);
 const contentSchema = z.discriminatedUnion("type", [
   z.object({
-    type: z.enum(["video", "document"]),
+    type: z.literal("video"),
     ...baseContent,
-    upload_id: z.union([z.number().int().positive(), z.string().min(1)]),
+    upload_id: uploadId,
+    duration_seconds: z
+      .number({ error: "Video süresi okunamadı." })
+      .positive("Video süresi okunamadı.")
+      .max(86400, "Video en fazla 24 saat olabilir."),
+  }),
+  z.object({
+    type: z.literal("document"),
+    ...baseContent,
+    upload_id: uploadId,
   }),
   z.object({
     type: z.literal("link"),
@@ -84,7 +94,14 @@ const contentSchema = z.discriminatedUnion("type", [
 /** Adım 3: içeriği oluştur (video/PDF için upload_id ile). */
 export async function createContentAction(
   raw_educationId: number,
-  input: { type: string; title: string; is_required: boolean; upload_id?: number | string; url?: string },
+  input: {
+    type: string;
+    title: string;
+    is_required: boolean;
+    upload_id?: number | string;
+    url?: string;
+    duration_seconds?: number;
+  },
 ): Promise<ActionResult> {
   const educationId = parseId(raw_educationId);
   if (educationId === null) return INVALID_ID;
