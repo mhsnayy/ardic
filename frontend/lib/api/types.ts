@@ -39,6 +39,7 @@ export type Education = {
   description: string | null;
   created_at: string;
   stats: EducationStats;
+  contents_count: number;
 };
 
 export type Assignment = {
@@ -72,4 +73,32 @@ export type AuthLoginResponse = {
   token: string;
   expires_at: string;
   user: { id: number; name: string; email: string };
+};
+
+export type ContentKind = "video" | "document" | "link";
+
+export type VideoProperties = { mime_type: string; size_bytes: number; duration_seconds: number | null };
+export type DocumentProperties = { mime_type: string; size_bytes: number };
+export type LinkProperties = { url: string };
+
+export type Content = {
+  id: number;
+  education_id: number;
+  kind: ContentKind;
+  title: string;
+  sort_order: number;
+  is_required: boolean;
+  properties: Partial<VideoProperties & DocumentProperties & LinkProperties>;
+  created_at: string;
+};
+
+export type UploadKind = Exclude<ContentKind, "link">;
+
+export type UploadTarget = {
+  upload_id: number | string;
+  upload_url: string;
+  method: string;
+  headers: Record<string, string>;
+  expires_at: string;
+  max_bytes: number;
 };

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   getEducation,
+  listContents,
   listAssignments,
   listEducationTypes,
   listEpDepartments,
@@ -23,6 +24,9 @@ import {
   updateEducationAction,
   updateStatusAction,
 } from "../actions";
+import { deleteContentAction, reorderContentsAction, requestUploadAction, createContentAction } from "../content-actions";
+import { AddContentDialog } from "./add-content-dialog";
+import { ContentList } from "./content-list";
 import { AssignDialog } from "./assign-dialog";
 import { StatusSelect } from "./status-select";
 
@@ -32,8 +36,9 @@ export default async function EducationDetailPage({ params }: PageProps<"/egitim
   const { id } = await params;
   if (parseId(id) === null) notFound();
 
-  const [{ data: edu }, assignments, types, people, deps] = await Promise.all([
+  const [{ data: edu }, contents, assignments, types, people, deps] = await Promise.all([
     getEducation(id),
+    listContents(id),
     listAssignments(id),
     listEducationTypes(),
     listPersonnelProgress({}),
@@ -98,6 +103,21 @@ export default async function EducationDetailPage({ params }: PageProps<"/egitim
             </dl>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">İçerikler</h2>
+        <AddContentDialog
+          requestUpload={requestUploadAction.bind(null, edu.id)}
+          create={createContentAction.bind(null, edu.id)}
+        />
+      </div>
+      <div className="mb-6">
+        <ContentList
+          contents={contents.data}
+          reorder={reorderContentsAction.bind(null, edu.id)}
+          remove={deleteContentAction}
+        />
       </div>
 
       <div className="mb-3 flex items-center justify-between gap-2">

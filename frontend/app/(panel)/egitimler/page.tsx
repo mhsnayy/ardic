@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { listEducations, listEducationTypes } from "@/lib/api/education";
@@ -33,6 +34,7 @@ export default async function EducationsPage({ searchParams }: PageProps<"/egiti
             <TableRow>
               <TableHead>Eğitim</TableHead>
               <TableHead>Tür</TableHead>
+              <TableHead>İçerik</TableHead>
               <TableHead>İlerleme</TableHead>
               <TableHead className="text-right">İşlemler</TableHead>
             </TableRow>
@@ -40,7 +42,7 @@ export default async function EducationsPage({ searchParams }: PageProps<"/egiti
           <TableBody>
             {list.data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   Eğitim bulunamadı.
                 </TableCell>
               </TableRow>
@@ -53,6 +55,9 @@ export default async function EducationsPage({ searchParams }: PageProps<"/egiti
                   </Link>
                 </TableCell>
                 <TableCell>{e.type_label}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{e.contents_count ?? 0}</Badge>
+                </TableCell>
                 <TableCell>
                   <ProgressCell completed={e.stats.completed} total={e.stats.total} rate={e.stats.completion_rate} />
                 </TableCell>

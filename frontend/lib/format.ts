@@ -26,3 +26,19 @@ export function formatDate(value: string | null | undefined): string {
 export function formatPercent(rate: number): string {
   return `%${Math.round(rate)}`;
 }
+
+export function formatBytes(bytes: number | undefined | null): string {
+  if (bytes === undefined || bytes === null) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export function formatDuration(seconds: number | undefined | null): string | null {
+  if (seconds === undefined || seconds === null) return null;
+  const s = Math.round(seconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const r = String(s % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${r}` : `${m}:${r}`;
+}

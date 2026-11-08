@@ -3,6 +3,9 @@ import { apiFetch, readApi } from "./client";
 import type {
   AssignResult,
   Assignment,
+  Content,
+  UploadKind,
+  UploadTarget,
   AssignmentStatus,
   Department,
   Education,
@@ -97,4 +100,42 @@ export function listEpDepartments() {
     "education",
     "/api/departments",
   );
+}
+
+const eid = (id: number | string) => encodeURIComponent(String(id));
+
+export function listContents(educationId: string) {
+  return readApi<{ data: Content[] }>("education", `/api/educations/${eid(educationId)}/contents`);
+}
+
+export function requestUpload(
+  educationId: number,
+  input: { kind: UploadKind; filename: string; mime_type: string; size_bytes: number },
+) {
+  return apiFetch<UploadTarget>("education", `/api/educations/${eid(educationId)}/uploads`, {
+    method: "POST",
+    body: input,
+  });
+}
+
+export type ContentInput =
+  | { type: "video" | "document"; title: string; is_required: boolean; upload_id: number | string }
+  | { type: "link"; title: string; is_required: boolean; url: string };
+
+export function createContent(educationId: number, input: ContentInput) {
+  return apiFetch<{ data: Content }>("education", `/api/educations/${eid(educationId)}/contents`, {
+    method: "POST",
+    body: input,
+  });
+}
+
+export function reorderContents(educationId: number, ids: number[]) {
+  return apiFetch<{ data: Content[] }>("education", `/api/educations/${eid(educationId)}/contents/order`, {
+    method: "PATCH",
+    body: { ids },
+  });
+}
+
+export function deleteContent(id: number) {
+  return apiFetch<void>("education", `/api/contents/${eid(id)}`, { method: "DELETE" });
 }
