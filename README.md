@@ -1,8 +1,7 @@
 # Personel Sistemi + Eğitim Portalı
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![CI](https://github.com/mhsnayy/ardinc/actions/workflows/ci.yml/badge.svg)](https://github.com/mhsnayy/ardinc/actions/workflows/ci.yml)
 
-> Rozetteki `OWNER/REPO` yer tutucusudur. Depo GitHub'a gönderilince kendi adresinizle değiştirin.
 
 Şirket personelini yöneten bir **Personel Sistemi** ile bu personele eğitim atayıp ilerlemeyi izleyen bir **Eğitim Portalı**. İkisi de ayrı Laravel API'sidir ve her birinin kendi PostgreSQL veritabanı vardır. Yöneticiler her ikisini tek bir **Next.js paneli** üzerinden kullanır. Hepsi Docker ile ayağa kalkar.
 
