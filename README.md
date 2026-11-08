@@ -38,6 +38,59 @@ Pi kendi mimarisi için imajları kendisi build eder (64-bit işletim sistemi ö
 
 > Seed her açılışta **tek** admin hesabını `.env`'deki `ADMIN_EMAIL` / `ADMIN_PASSWORD` ile günceller. Şifreyi değiştirmek için `.env`'i düzenleyip `docker compose up -d` yapmak yeterlidir. E-posta değiştirilirse eski admin hesabı ve token'ları silinir.
 
+## Alan adıyla yayın (HTTPS, reverse proxy arkasında)
+
+Sunucuda TLS'i bir reverse proxy (nginx, Caddy, Traefik, Cloudflare Tunnel...) sonlandırıyorsa, [docker-compose.proxy.yml](docker-compose.proxy.yml) ana compose dosyasının üstüne bindirilir. Bu dosyayla hiçbir servis host'a port açmaz. Tarayıcıya bakan iki servis, proxy'nin docker ağına `ardic-frontend` ve `ardic-egitim` alias'larıyla katılır. Veritabanları ve Personel Sistemi bu ağa katılmaz.
+
+**`.env`** (örnek alan adı `portal.example.com`):
+
+```env
+COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml
+PROXY_NETWORK=edge                                # proxy'nin bağlı olduğu docker ağı (önceden var olmalı)
+PUBLIC_FRONTEND_URL=https://portal.example.com
+PUBLIC_EDUCATION_URL=https://portal.example.com   # aynı adres: /uploads ve /media proxy'de ayrılır
+COOKIE_SECURE=true
+```
+
+Şifreleri ve `SERVICE_TOKEN` değerini de değiştirin (Raspberry Pi bölümündeki gibi). `COMPOSE_FILE` sayesinde düz `docker compose up -d --build` iki dosyayı birlikte okur (ayırıcı Linux/macOS'ta `:`, Windows'ta `;`). `!reset` için Docker Compose 2.24 veya üstü gerekir.
+
+**Proxy'nin yapması gerekenler:**
+
+| Yol | Hedef | Not |
+|---|---|---|
+| `/uploads/`, `/media/` | `http://ardic-egitim:8000` | İmzalı yükleme (`PUT`, 200 MB'a kadar) ve medya akışı. Gövde sınırı ≥ 210 MB, zaman aşımı ≥ 15 dk, istek ve yanıt tamponlama kapalı |
+| geri kalan her şey | `http://ardic-frontend:3000` | Panel ve öğrenme linkleri (`/ogren/...`) |
+
+- `Host` başlığı korunmalı ve `X-Forwarded-Proto: https` gönderilmeli. Eğitim Portalı imzalı URL'leri `https` ile üretir. Proxy bu başlığı göndermezse imza doğrulaması tutmaz ve her yükleme `403` döner. Eğitim Portalı yalnızca bu başlığa güvenir. `X-Forwarded-For` bilinçli olarak yok sayılır (giriş limitini sahte IP ile aşmayı engeller).
+- Öğrenme linkleri giriş gerektirmez. Önüne ek bir kimlik doğrulama katmanı (ör. Cloudflare Access) konursa personel linki açamaz.
+- **Cloudflare:** Ücretsiz planda istek gövdesi en fazla 100 MB'tır. 100 MB'ı geçen video yüklemesi Cloudflare tarafından `413` ile reddedilir.
+
+Örnek nginx (proxy ile aynı docker ağında):
+
+```nginx
+server {
+    listen 443 ssl;   # ya da TLS'i önündeki katman sonlandırıyorsa: listen 80;
+    server_name portal.example.com;
+
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Forwarded-Proto https;
+
+    location / {
+        proxy_pass http://ardic-frontend:3000;
+    }
+
+    location ~ ^/(uploads|media)/ {
+        proxy_pass http://ardic-egitim:8000;
+        client_max_body_size    210m;
+        proxy_request_buffering off;
+        proxy_buffering         off;
+        proxy_read_timeout      900s;
+        proxy_send_timeout      900s;
+    }
+}
+```
+
 ## Güncelleme, yedek, sıfırlama
 
 ```bash
@@ -130,7 +183,7 @@ Bir eğitime video (mp4/webm, en çok 200 MB), PDF (en çok 50 MB) veya bağlant
   ```
 
 - **Öğrenme linki** `PUBLIC_FRONTEND_URL` ile üretilir.
-- **Raspberry Pi:** Tarayıcı medyayı ve yüklemeyi doğrudan `PUBLIC_EDUCATION_URL` adresinden (8002) yapar; bu adres tarayıcıdan erişilebilir olmalıdır (`localhost` yazmayın).
+- **Raspberry Pi:** Tarayıcı medyayı ve yüklemeyi doğrudan `PUBLIC_EDUCATION_URL` adresinden (8002) yapar; bu adres tarayıcıdan erişilebilir olmalıdır (`localhost` yazmayın). Alan adıyla yayında bu adres panelle aynıdır (bkz. "Alan adıyla yayın").
 - **Temizlik:** `php artisan media:prune` Eğitim Portalı açılışta ve container açıkken saatte bir çalışır; içeriğe bağlanmamış, 24 saatten eski yüklemeleri siler. Hata verirse açılışı engellemez.
 - **Limitler:** Caddy istek gövdesi 210 MB ile sınırlıdır, gövde okuma zaman aşımı 15 dakikadır; PHP `max_execution_time` ve `max_input_time` 600 sn.
 

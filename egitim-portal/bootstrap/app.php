@@ -33,6 +33,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'learning.token' => ResolveLearningToken::class,
         ]);
 
+        // Behind a TLS-terminating reverse proxy the request arrives as http, but signed URLs are
+        // built from APP_URL (https). Trust ONLY X-Forwarded-Proto so signature checks see https;
+        // X-Forwarded-For stays untrusted so it cannot spoof the IP used by rate limiters.
+        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_PROTO);
+
         // API only: never redirect guests to a (non-existent) login route.
         $middleware->redirectGuestsTo(fn () => null);
     })

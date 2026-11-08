@@ -11,6 +11,7 @@ use App\Models\MediaUpload;
 use App\Models\VideoContent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -124,6 +125,21 @@ class MediaTest extends TestCase
             ->assertForbidden()->assertJsonStructure(['message']);
         $this->sendRaw('/uploads/'.$r->json('upload_id'), 'DATA')->assertForbidden();
         $this->assertSame('pending', MediaUpload::first()->status);
+    }
+
+    public function test_signed_put_works_behind_tls_terminating_proxy(): void
+    {
+        // Public address is https; the proxy forwards plain http with X-Forwarded-Proto.
+        URL::forceRootUrl('https://portal.example.com');
+        URL::forceScheme('https');
+
+        $r = $this->target('video', 'video/mp4', 4)->assertCreated();
+        $url = $r->json('upload_url');
+        $this->assertStringStartsWith('https://portal.example.com/uploads/', $url);
+
+        $asProxied = 'http://'.Str::after($url, 'https://');
+        $this->sendRaw($asProxied, 'DATA')->assertForbidden();
+        $this->sendRaw($asProxied, 'DATA', 'video/mp4', ['HTTP_X_FORWARDED_PROTO' => 'https'])->assertNoContent();
     }
 
     public function test_expired_signature_and_expired_record(): void

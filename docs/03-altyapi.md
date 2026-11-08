@@ -25,6 +25,7 @@ docker compose up -d --build
 - **Güncelleme:** `git pull && docker compose up -d --build`
 - **Raspberry Pi:** `.env` dosyasında `PUBLIC_*` adreslerini Pi'nin adresiyle değiştir (§5) ve şifreleri değiştir. Pi kendi mimarisi için kendisi build eder. İlk build birkaç dakika sürer.
 - `.env.example` olduğu gibi kopyalandığında sistem çalışmalı.
+- **Alan adı + HTTPS (reverse proxy arkasında):** `docker-compose.proxy.yml` ana dosyanın üstüne bindirilir (`.env`'de `COMPOSE_FILE`, `PROXY_NETWORK`). Hiçbir servis host'a port açmaz. `frontend` ve `egitim-portal`, proxy ağına `ardic-frontend` / `ardic-egitim` alias'larıyla katılır. Proxy `/uploads/` ve `/media/` yollarını `egitim-portal`'a, geri kalanı `frontend`'e yönlendirir ve `X-Forwarded-Proto: https` gönderir. Eğitim Portalı yalnızca bu başlığa güvenir, `X-Forwarded-For`'a güvenmez. Ayrıntı: README → "Alan adıyla yayın".
 
 ## 3. Docker
 

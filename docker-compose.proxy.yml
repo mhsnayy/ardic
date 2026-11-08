@@ -1,0 +1,45 @@
+# Alan adı + HTTPS ile, bir reverse proxy (nginx, Caddy, Traefik...) arkasında yayın.
+# docker-compose.yml'nin üstüne bindirilir; tek başına kullanılmaz.
+#
+#   .env içinde:
+#     COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml
+#     PROXY_NETWORK=<proxy'nin bağlı olduğu docker ağı>
+#
+# Ne değişir:
+#   - Hiçbir servis host'a port açmaz; tek giriş reverse proxy'dir.
+#   - Tarayıcıya bakan iki servis proxy ağına benzersiz bir alias ile katılır:
+#       ardic-frontend:3000  → /            (panel)
+#       ardic-egitim:8000    → /uploads/, /media/   (imzalı yükleme ve medya)
+#   - Veritabanları ve personel-service proxy ağına KATILMAZ.
+#
+# Proxy tarafında gerekenler: README → "Alan adıyla yayın".
+# "!reset" için Docker Compose 2.24 veya üstü gerekir.
+
+services:
+  personel-db:
+    ports: !reset []
+  egitim-db:
+    ports: !reset []
+  personel-service:
+    ports: !reset []
+
+  egitim-portal:
+    ports: !reset []
+    networks:
+      default:
+      proxy:
+        aliases:
+          - ardic-egitim
+
+  frontend:
+    ports: !reset []
+    networks:
+      default:
+      proxy:
+        aliases:
+          - ardic-frontend
+
+networks:
+  proxy:
+    name: ${PROXY_NETWORK:?.env içinde PROXY_NETWORK yok (reverse proxy'nin docker ağı)}
+    external: true
