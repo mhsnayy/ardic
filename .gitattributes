@@ -6,3 +6,9 @@
 *.mp4 binary
 *.webm binary
 *.pdf binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+Dockerfile text eol=lf
+*.yml text eol=lf

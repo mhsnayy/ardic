@@ -1,0 +1,131 @@
+# Tum degerler .env dosyasindan gelir (bkz. .env.example).
+name: personel-egitim
+
+x-laravel-env: &laravel-env
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_LOCALE: tr
+  LOG_CHANNEL: stderr
+  ADMIN_EMAIL: ${ADMIN_EMAIL}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+  DB_CONNECTION: pgsql
+  DB_PORT: "5432"
+
+services:
+  personel-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: personel
+      POSTGRES_USER: personel
+      POSTGRES_PASSWORD: ${PS_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - ps-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U personel -d personel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  egitim-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: egitim
+      POSTGRES_USER: egitim
+      POSTGRES_PASSWORD: ${EP_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - ep-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U egitim -d egitim"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  personel-service:
+    build: ./personel-service
+    restart: unless-stopped
+    depends_on:
+      personel-db:
+        condition: service_healthy
+    environment:
+      <<: *laravel-env
+      APP_KEY: ${PS_APP_KEY:-}
+      DB_HOST: personel-db
+      DB_DATABASE: personel
+      DB_USERNAME: personel
+      DB_PASSWORD: ${PS_DB_PASSWORD}
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - ps-storage:/app/storage
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
+
+  egitim-portal:
+    build: ./egitim-portal
+    restart: unless-stopped
+    depends_on:
+      egitim-db:
+        condition: service_healthy
+      personel-service:
+        condition: service_healthy
+    environment:
+      <<: *laravel-env
+      APP_KEY: ${EP_APP_KEY:-}
+      APP_URL: ${PUBLIC_EDUCATION_URL}
+      FRONTEND_URL: ${PUBLIC_FRONTEND_URL}
+      DB_HOST: egitim-db
+      DB_DATABASE: egitim
+      DB_USERNAME: egitim
+      DB_PASSWORD: ${EP_DB_PASSWORD}
+      PERSONNEL_API_URL: http://personel-service:8000
+      PERSONNEL_API_TOKEN: ${SERVICE_TOKEN}
+      MEDIA_DRIVER: local
+    ports:
+      - "${EDUCATION_PORT:-8002}:8000"
+    volumes:
+      - ep-storage:/app/storage
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      personel-service:
+        condition: service_healthy
+      egitim-portal:
+        condition: service_healthy
+    environment:
+      PERSONNEL_API_URL: http://personel-service:8000
+      EDUCATION_API_URL: http://egitim-portal:8000
+      PUBLIC_FRONTEND_URL: ${PUBLIC_FRONTEND_URL}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:3000/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+volumes:
+  ps-db-data:
+  ep-db-data:
+  ps-storage:
+  ep-storage:

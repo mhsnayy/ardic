@@ -1,0 +1,30 @@
+# Gizli bilgiler
+.env
+.env.*
+!.env.example
+
+# Bagimliliklar ve build ciktilari
+vendor/
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Veritabani ve Laravel (storage/ ve bootstrap/cache icerigini uygulamalarin
+# kendi .gitignore dosyalari dislar; burada ek olarak)
+*.sqlite
+*.sqlite-journal
+**/storage/app/.app_key
+.phpunit.result.cache
+.phpunit.cache
+
+# Yedekler ve loglar
+*.log
+yedek.sql
+
+# Editor / OS
+.idea/
+.DS_Store
+Thumbs.db

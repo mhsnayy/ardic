@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [personel-service, egitim-portal]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, intl, zip
+          coverage: none
+
+      - name: Composer cache dizini
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ matrix.app }}-${{ hashFiles(format('{0}/composer.lock', matrix.app)) }}
+          restore-keys: composer-${{ matrix.app }}-
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: .env ve APP_KEY
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - run: vendor/bin/pint --test
+
+      - name: Testler (PostgreSQL)
+        run: php artisan test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: testing
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+  docker:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: cp .env.example .env
+
+      - name: Build ve baslat
+        run: docker compose up -d --build
+
+      - name: Servislerin healthy olmasini bekle
+        run: |
+          deadline=$((SECONDS + 300))
+          while true; do
+            unhealthy=0
+            for svc in personel-db egitim-db personel-service egitim-portal frontend; do
+              cid=$(docker compose ps -q "$svc")
+              status=$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null || echo missing)
+              echo "$svc: $status"
+              [ "$status" = "healthy" ] || unhealthy=1
+            done
+            [ "$unhealthy" -eq 0 ] && break
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "Zaman asimi: servisler healthy olmadi" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: /login 200 donmeli
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/login)
+          echo "HTTP $code"
+          [ "$code" = "200" ]
+
+      - name: Loglar (hata durumunda)
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Temizlik
+        if: always()
+        run: docker compose down -v
