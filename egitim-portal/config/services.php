@@ -14,6 +14,11 @@ return [
     |
     */
 
+    'personnel' => [
+        'url' => env('PERSONNEL_API_URL', 'http://127.0.0.1:8001'),
+        'token' => env('PERSONNEL_API_TOKEN'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

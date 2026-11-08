@@ -78,9 +78,9 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'tr'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'tr'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
@@ -117,6 +117,10 @@ return [
     | Supported drivers: "file", "cache", "array"
     |
     */
+
+    'admin_email' => env('ADMIN_EMAIL', 'admin@example.com'),
+    'admin_password' => env('ADMIN_PASSWORD', 'password'),
+    'service_token' => env('SERVICE_TOKEN'),
 
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
