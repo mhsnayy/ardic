@@ -111,7 +111,7 @@ cd personel-service && php artisan test && vendor/bin/pint --test
 cd egitim-portal    && php artisan test && vendor/bin/pint --test
 
 # Panel
-cd frontend && npm run lint && npx tsc --noEmit && npm run build
+cd frontend && npm run lint && npx next typegen && npx tsc --noEmit && npm run build
 ```
 
 CI (`.github/workflows/ci.yml`) her push ve PR'da aynı kontrolleri çalıştırır, ardından tüm yığını `docker compose up --build` ile kaldırıp `/login` sayfasını doğrular.

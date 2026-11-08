@@ -90,6 +90,8 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      # PageProps/LayoutProps gibi route tipleri build sırasında üretilir; tsc öncesi üret
+      - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm run build
 

@@ -149,11 +149,12 @@ class SecurityHardeningTest extends TestCase
         $injected = false;
 
         // Simulate a concurrent request inserting the row after the service read existing rows.
-        EducationAssignment::creating(function (EducationAssignment $a) use (&$injected) {
-            if (! $injected) {
+        // The row is inserted right after the service's "existing" SELECT (outside the insert savepoint).
+        DB::listen(function ($query) use (&$injected, $edu) {
+            if (! $injected && str_starts_with(strtolower($query->sql), 'select') && str_contains($query->sql, 'education_assignments')) {
                 $injected = true;
                 DB::table('education_assignments')->insert([
-                    'education_id' => $a->education_id, 'personnel_id' => $a->personnel_id,
+                    'education_id' => $edu->id, 'personnel_id' => 1,
                     'personnel_name' => 'X', 'personnel_email' => 'x@example.com',
                     'status' => 'assigned', 'assigned_at' => now(), 'created_at' => now(), 'updated_at' => now(),
                 ]);

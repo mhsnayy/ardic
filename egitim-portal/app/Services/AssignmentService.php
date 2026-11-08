@@ -6,6 +6,7 @@ use App\Enums\AssignmentStatus;
 use App\Exceptions\PersonnelUnavailableException;
 use App\Models\Education;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 
 class AssignmentService
 {
@@ -39,14 +40,16 @@ class AssignmentService
             } else {
                 $person = $live[$id];
                 try {
-                    $education->assignments()->create([
+                    // Savepoint: on Postgres a unique violation aborts the whole
+                    // surrounding transaction unless it is rolled back to a savepoint.
+                    DB::transaction(fn () => $education->assignments()->create([
                         'personnel_id' => $id,
                         'personnel_name' => $person['full_name'],
                         'personnel_email' => $person['email'],
                         'department_name' => $person['department']['name'] ?? null,
                         'status' => AssignmentStatus::Assigned,
                         'assigned_at' => now(),
-                    ]);
+                    ]));
                     $created[] = $id;
                 } catch (UniqueConstraintViolationException) {
                     $alreadyAssigned[] = $id; // lost a race (BR-1)
