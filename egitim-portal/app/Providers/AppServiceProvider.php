@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Every absolute URL this API hands out (signed upload/playback URLs) must be the public
+        // address (APP_URL), not the internal host the request arrived on (e.g. http://egitim-portal:8000).
+        if ($root = config('app.url')) {
+            URL::forceRootUrl($root);
+            if ($scheme = parse_url($root, PHP_URL_SCHEME)) {
+                URL::forceScheme($scheme);
+            }
+        }
+
         Route::pattern('education', '[0-9]+');
         Route::pattern('assignment', '[0-9]+');
         Route::pattern('content', '[0-9]+');

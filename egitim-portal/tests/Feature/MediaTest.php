@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Media\MediaManager;
 use App\Models\DocumentContent;
 use App\Models\Education;
+use App\Models\EducationAssignment;
 use App\Models\EducationContent;
 use App\Models\MediaUpload;
 use App\Models\VideoContent;
@@ -376,5 +377,53 @@ class MediaTest extends TestCase
 
         $this->artisan('media:prune')->assertSuccessful(); // idempotent
         Storage::disk('media')->assertExists($attachedPath);
+    }
+
+    // ---- public URL (requests may arrive on an internal host)
+
+    public function test_signed_urls_use_app_url_even_when_request_hits_internal_host(): void
+    {
+        $r = $this->postJson("http://egitim-portal:8000/api/educations/{$this->edu->id}/uploads", [
+            'kind' => 'video', 'filename' => 'a.mp4', 'mime_type' => 'video/mp4', 'size_bytes' => 4,
+        ], $this->h)->assertCreated();
+
+        $url = $r->json('upload_url');
+        $this->assertStringStartsWith(rtrim(config('app.url'), '/').'/uploads/', $url);
+        $this->assertStringNotContainsString('egitim-portal', $url);
+
+        // valid on the public host ...
+        $this->sendRaw($url, 'DATA')->assertNoContent();
+
+        // ... and playback URL too
+        $contentId = $this->postJson("http://egitim-portal:8000/api/educations/{$this->edu->id}/contents", [
+            'type' => 'video', 'title' => 'V', 'upload_id' => $r->json('upload_id'),
+        ], $this->h)->assertCreated()->json('data.id');
+        $this->assertNotNull($contentId);
+    }
+
+    public function test_playback_url_uses_app_url_and_signature_is_host_bound(): void
+    {
+        [$id, $path] = $this->uploaded();
+        $this->addContent('video', $id)->assertCreated();
+        $link = $this->postJson('http://egitim-portal:8000/api/assignments/'.$this->makeAssignment()->id.'/learning-link', [], $this->h)
+            ->assertCreated()->json('token');
+
+        $r = $this->getJson('http://egitim-portal:8000/api/learn', ['X-Learning-Token' => $link])->assertOk();
+        $playback = $r->json('data.contents.0.playback_url');
+
+        $this->assertStringStartsWith(rtrim(config('app.url'), '/').'/media/', $playback);
+        $this->get($playback)->assertOk();
+
+        // the same signature does not validate on the internal host
+        $internal = str_replace(rtrim(config('app.url'), '/'), 'http://egitim-portal:8000', $playback);
+        $this->get($internal)->assertForbidden();
+    }
+
+    private function makeAssignment(): EducationAssignment
+    {
+        return EducationAssignment::create([
+            'education_id' => $this->edu->id, 'personnel_id' => 1, 'personnel_name' => 'A',
+            'personnel_email' => 'a@b.c', 'status' => 'assigned', 'assigned_at' => now(),
+        ]);
     }
 }
