@@ -19,6 +19,17 @@ class Education extends Model
         return ['type' => EducationType::class];
     }
 
+    protected static function booted(): void
+    {
+        // DB cascade removes content rows, so delete via models to also drop contentables.
+        static::deleting(fn (self $e) => $e->contents()->get()->each->delete());
+    }
+
+    public function contents(): HasMany
+    {
+        return $this->hasMany(EducationContent::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function assignments(): HasMany
     {
         return $this->hasMany(EducationAssignment::class);
@@ -28,6 +39,7 @@ class Education extends Model
     public function scopeWithStats(Builder $query): Builder
     {
         return $query->withCount([
+            'contents as contents_count',
             'assignments as total_count',
             'assignments as assigned_count' => fn ($q) => $q->where('status', AssignmentStatus::Assigned->value),
             'assignments as in_progress_count' => fn ($q) => $q->where('status', AssignmentStatus::InProgress->value),

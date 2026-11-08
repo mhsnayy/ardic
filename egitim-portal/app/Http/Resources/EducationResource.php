@@ -20,6 +20,7 @@ class EducationResource extends JsonResource
             'type' => $this->type->value,
             'type_label' => $this->type->label(),
             'description' => $this->description,
+            'contents_count' => (int) $this->contents_count,
             'created_at' => $this->created_at?->toIso8601String(),
             'stats' => [
                 'total' => $total,
