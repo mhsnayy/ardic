@@ -3,11 +3,12 @@
 namespace App\Services\Content;
 
 use App\Contracts\ContentType;
+use App\Models\Education;
 use App\Models\LinkContent;
 
 class LinkContentCreator implements ContentCreator
 {
-    public function rules(): array
+    public function rules(Education $education): array
     {
         return ['url' => ['required', 'string', 'url:http,https', 'max:2000']];
     }
@@ -21,7 +22,7 @@ class LinkContentCreator implements ContentCreator
         ];
     }
 
-    public function create(array $data): ContentType
+    public function create(array $data, Education $education): ContentType
     {
         return LinkContent::create(['url' => $data['url']]);
     }

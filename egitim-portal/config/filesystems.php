@@ -38,6 +38,14 @@ return [
             'report' => false,
         ],
 
+        // Private media store: files live in storage/app/media/{education_id}/..., never publicly served.
+        'media' => [
+            'driver' => 'local',
+            'root' => storage_path('app'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

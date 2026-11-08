@@ -15,7 +15,7 @@ class ContentService
     public function add(Education $education, array $data): EducationContent
     {
         return DB::transaction(function () use ($education, $data) {
-            $contentable = $this->creators->for($data['type'])->create($data);
+            $contentable = $this->creators->for($data['type'])->create($data, $education);
 
             $content = new EducationContent([
                 'title' => $data['title'],

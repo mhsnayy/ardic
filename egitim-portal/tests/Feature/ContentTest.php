@@ -93,11 +93,11 @@ class ContentTest extends TestCase
         $this->assertSame(0, EducationContent::count());
     }
 
-    public function test_video_and_document_not_yet_supported(): void
+    public function test_video_and_document_require_upload_id(): void
     {
         foreach (['video', 'document'] as $type) {
             $this->postJson($this->url(), ['type' => $type, 'title' => 'T'], $this->h)
-                ->assertUnprocessable()->assertJsonValidationErrors(['type']);
+                ->assertUnprocessable()->assertJsonValidationErrors(['upload_id']);
         }
     }
 

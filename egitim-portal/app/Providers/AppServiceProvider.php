@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Media\MediaManager;
 use App\Models\DocumentContent;
 use App\Models\LinkContent;
 use App\Models\User;
@@ -17,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(MediaManager::class);
     }
 
     public function boot(): void

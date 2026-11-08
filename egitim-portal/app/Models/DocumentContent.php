@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Contracts\ContentType;
+use App\Models\Concerns\DeletesMedia;
 use Illuminate\Database\Eloquent\Model;
 
 class DocumentContent extends Model implements ContentType
 {
+    use DeletesMedia;
+
     protected $fillable = ['media_driver', 'media_path', 'mime_type', 'size_bytes'];
 
     protected function casts(): array

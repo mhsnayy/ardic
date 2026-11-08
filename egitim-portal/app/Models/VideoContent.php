@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Contracts\ContentType;
+use App\Models\Concerns\DeletesMedia;
 use Illuminate\Database\Eloquent\Model;
 
 class VideoContent extends Model implements ContentType
 {
+    use DeletesMedia;
+
     protected $fillable = ['media_driver', 'media_path', 'mime_type', 'size_bytes', 'duration_seconds'];
 
     protected function casts(): array

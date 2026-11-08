@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AssignmentStatus;
 use App\Enums\EducationType;
+use App\Media\MediaManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +23,14 @@ class Education extends Model
     protected static function booted(): void
     {
         // DB cascade removes content rows, so delete via models to also drop contentables.
-        static::deleting(fn (self $e) => $e->contents()->get()->each->delete());
+        // Media files go with them (contentable deletion, plus unattached uploads).
+        static::deleting(function (self $e) {
+            $e->contents()->get()->each->delete();
+            MediaUpload::where('education_id', $e->id)->get()->each(function (MediaUpload $u) {
+                app(MediaManager::class)->driver($u->media_driver)->delete($u->path);
+                $u->delete();
+            });
+        });
     }
 
     public function contents(): HasMany

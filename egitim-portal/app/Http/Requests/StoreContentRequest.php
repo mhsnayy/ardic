@@ -26,12 +26,7 @@ class StoreContentRequest extends FormRequest
 
         $creator = $this->creator();
         if ($creator) {
-            return array_merge($rules, $creator->rules());
-        }
-
-        // Valid kind without a registered creator yet (file uploads arrive in step 2).
-        if (in_array($this->input('type'), ['video', 'document'], true)) {
-            $rules['type'][] = fn ($attribute, $value, $fail) => $fail('Bu içerik türü henüz desteklenmiyor.');
+            return array_merge($rules, $creator->rules($this->route('education')));
         }
 
         return $rules;
