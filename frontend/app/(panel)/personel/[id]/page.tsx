@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { parseId } from "@/lib/validate";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PersonnelDetailPage({ params }: PageProps<"/personel/[id]">) {
   const { id } = await params;
+  if (parseId(id) === null) notFound();
   // Eğitim Portalı'ndan okunur (FE-3: Personel Sistemi kapalıyken de açılır)
   const res = await listPersonnelAssignments(id);
   const { personnel, progress, personnel_source } = res.meta;

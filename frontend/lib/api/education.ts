@@ -26,7 +26,7 @@ export function listEducations(params: { search?: string; page?: string | number
 }
 
 export function getEducation(id: string) {
-  return readApi<{ data: Education }>("education", `/api/educations/${id}`);
+  return readApi<{ data: Education }>("education", `/api/educations/${encodeURIComponent(String(id))}`);
 }
 
 export function createEducation(input: EducationInput) {
@@ -34,33 +34,33 @@ export function createEducation(input: EducationInput) {
 }
 
 export function updateEducation(id: number, input: EducationInput) {
-  return apiFetch<{ data: Education }>("education", `/api/educations/${id}`, { method: "PUT", body: input });
+  return apiFetch<{ data: Education }>("education", `/api/educations/${encodeURIComponent(String(id))}`, { method: "PUT", body: input });
 }
 
 export function deleteEducation(id: number) {
-  return apiFetch<void>("education", `/api/educations/${id}`, { method: "DELETE" });
+  return apiFetch<void>("education", `/api/educations/${encodeURIComponent(String(id))}`, { method: "DELETE" });
 }
 
 export function listAssignments(educationId: string) {
-  return readApi<{ data: Assignment[] }>("education", `/api/educations/${educationId}/assignments`);
+  return readApi<{ data: Assignment[] }>("education", `/api/educations/${encodeURIComponent(String(educationId))}/assignments`);
 }
 
 export function assignPersonnel(educationId: number, personnelIds: number[]) {
-  return apiFetch<AssignResult>("education", `/api/educations/${educationId}/assignments`, {
+  return apiFetch<AssignResult>("education", `/api/educations/${encodeURIComponent(String(educationId))}/assignments`, {
     method: "POST",
     body: { personnel_ids: personnelIds },
   });
 }
 
 export function updateAssignmentStatus(id: number, status: AssignmentStatus) {
-  return apiFetch<{ data: Assignment }>("education", `/api/assignments/${id}`, {
+  return apiFetch<{ data: Assignment }>("education", `/api/assignments/${encodeURIComponent(String(id))}`, {
     method: "PATCH",
     body: { status },
   });
 }
 
 export function deleteAssignment(id: number) {
-  return apiFetch<void>("education", `/api/assignments/${id}`, { method: "DELETE" });
+  return apiFetch<void>("education", `/api/assignments/${encodeURIComponent(String(id))}`, { method: "DELETE" });
 }
 
 export type PersonnelListResponse = {
@@ -89,7 +89,7 @@ export type PersonnelAssignmentsResponse = {
 };
 
 export function listPersonnelAssignments(personnelId: string) {
-  return readApi<PersonnelAssignmentsResponse>("education", `/api/personnel/${personnelId}/assignments`);
+  return readApi<PersonnelAssignmentsResponse>("education", `/api/personnel/${encodeURIComponent(String(personnelId))}/assignments`);
 }
 
 export function listEpDepartments() {

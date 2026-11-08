@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Department;
-use App\Models\Personnel;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
@@ -12,38 +11,39 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => config('app.admin_email')],
-            ['name' => 'Admin', 'password' => config('app.admin_password')],
-        );
+        $this->syncAdmin();
 
-        $departments = collect(['Bilgi Teknolojileri', 'İnsan Kaynakları', 'Finans', 'Satış'])
-            ->mapWithKeys(fn (string $name) => [$name => Department::firstOrCreate(['name' => $name])]);
-
-        $people = [
-            ['Ahmet', 'Yılmaz', 'ahmet.yilmaz@example.com', 'Bilgi Teknolojileri'],
-            ['Elif', 'Demir', 'elif.demir@example.com', 'Bilgi Teknolojileri'],
-            ['Mehmet', 'Kaya', 'mehmet.kaya@example.com', 'Bilgi Teknolojileri'],
-            ['Ayşe', 'Çelik', 'ayse.celik@example.com', 'İnsan Kaynakları'],
-            ['Fatma', 'Şahin', 'fatma.sahin@example.com', 'İnsan Kaynakları'],
-            ['Mustafa', 'Aydın', 'mustafa.aydin@example.com', 'İnsan Kaynakları'],
-            ['Zeynep', 'Arslan', 'zeynep.arslan@example.com', 'Finans'],
-            ['Can', 'Öztürk', 'can.ozturk@example.com', 'Finans'],
-            ['Burak', 'Doğan', 'burak.dogan@example.com', 'Finans'],
-            ['Selin', 'Koç', 'selin.koc@example.com', 'Satış'],
-            ['Emre', 'Polat', 'emre.polat@example.com', 'Satış'],
-            ['Deniz', 'Güneş', 'deniz.gunes@example.com', 'Satış'],
-        ];
-
-        foreach ($people as [$first, $last, $email, $department]) {
-            Personnel::firstOrCreate(
-                ['email' => $email],
-                ['first_name' => $first, 'last_name' => $last, 'department_id' => $departments[$department]->id],
-            );
+        // Ornek veri yalnizca ilk kurulumda (departments bos iken) yuklenir.
+        if (! Department::query()->exists()) {
+            $this->call(DemoDataSeeder::class);
         }
 
         if (filled($token = config('app.service_token'))) {
             Artisan::call('service:token', ['name' => 'egitim-portal', '--token' => $token]);
+        }
+    }
+
+    /**
+     * Servis hesabi olmayan TEK bir admin kaydi config'e gore yonetilir;
+     * diger (servis olmayan) kullanicilar ve token'lari silinir.
+     */
+    private function syncAdmin(): void
+    {
+        $email = (string) config('app.admin_email');
+        $humans = User::query()->orderBy('id')->get()->reject(fn (User $u) => $u->isServiceAccount());
+
+        $admin = $humans->firstWhere('email', $email) ?? $humans->first() ?? new User;
+
+        $admin->fill(['name' => 'Admin', 'email' => $email, 'password' => config('app.admin_password')])->save();
+
+        // E-posta degistiyse eski hesaba ait token'lar gecersiz kalmali.
+        if ($admin->wasChanged('email')) {
+            $admin->tokens()->delete();
+        }
+
+        foreach ($humans->reject(fn (User $u) => $u->is($admin)) as $other) {
+            $other->tokens()->delete();
+            $other->delete();
         }
     }
 }

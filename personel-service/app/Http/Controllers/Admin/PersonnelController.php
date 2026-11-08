@@ -14,15 +14,18 @@ class PersonnelController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
+        $request->validate(['department_id' => 'nullable|integer']);
+
         $search = trim((string) $request->query('search', ''));
 
         $query = Personnel::query()
             ->with('department')
             ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->query('department_id')))
             ->when($search !== '', fn ($q) => $q->where(function ($q) use ($search) {
-                $q->whereLike('first_name', "%{$search}%")
-                    ->orWhereLike('last_name', "%{$search}%")
-                    ->orWhereLike('email', "%{$search}%");
+                $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($search)).'%';
+                foreach (['first_name', 'last_name', 'email'] as $column) {
+                    $q->orWhereRaw("lower({$column}) like ? escape '!'", [$pattern]);
+                }
             }))
             ->orderBy('last_name')
             ->orderBy('first_name')

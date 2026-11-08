@@ -25,7 +25,7 @@ docker compose up -d --build
 
 İlk build birkaç dakika sürer. Servisler sırayla (veritabanı, API'ler, panel) başlar. Hepsi hazır olunca `docker compose ps` çıktısında beş servis de `healthy` görünür.
 
-Panel: http://localhost:3000. Giriş bilgileri `.env` dosyasındaki `ADMIN_EMAIL` ve `ADMIN_PASSWORD` değerleridir (varsayılan: `admin@example.com` / `password`). Örnek departman ve personel verisi ilk açılışta otomatik yüklenir, yeniden başlatmada tekrarlanmaz.
+Panel: http://localhost:3000. Giriş bilgileri `.env` dosyasındaki `ADMIN_EMAIL` ve `ADMIN_PASSWORD` değerleridir (varsayılan: `admin@example.com` / `password`). Örnek departman ve personel verisi yalnızca ilk kurulumda (Personel Sistemi veritabanı boşken) yüklenir; silinen ya da değiştirilen örnek kayıtlar yeniden başlatmada geri gelmez. Admin hesabı ve servis token'ı ise her açılışta `.env` ile senkronlanır.
 
 ## Raspberry Pi
 
@@ -37,7 +37,7 @@ Pi kendi mimarisi için imajları kendisi build eder (64-bit işletim sistemi ö
 
 > **Uyarı: `COOKIE_SECURE`** yalnızca site HTTPS ile sunuluyorsa `true` olmalıdır. Düz HTTP'de (localhost, yerel ağdaki Pi) `false` kalmalıdır. Aksi halde tarayıcı oturum cookie'sini kaydetmez ve giriş yapılamaz.
 
-> `ADMIN_EMAIL` ve `ADMIN_PASSWORD` yalnızca ilk seed'de kullanıcıyı oluşturmaz, her açılışta kullanıcıyı bu değerlerle günceller. Şifreyi `.env`'de değiştirip `docker compose up -d` yapmak yeterlidir.
+> Seed her açılışta **tek** admin hesabını `.env`'deki `ADMIN_EMAIL` / `ADMIN_PASSWORD` ile günceller. Şifreyi değiştirmek için `.env`'i düzenleyip `docker compose up -d` yapmak yeterlidir. E-posta değiştirilirse eski admin hesabı ve token'ları silinir.
 
 ## Güncelleme, yedek, sıfırlama
 
@@ -70,7 +70,7 @@ Tarayıcı ──► Next.js :3000 (BFF, veritabanı yok)
 ```
 
 - **Tarayıcı yalnızca Next ile konuşur.** Next, backend çağrılarını sunucu tarafında yapar. Backend adresleri ve token'lar tarayıcıya inmez.
-- **Kimlik doğrulama:** Sanctum token'ları. Admin token'ı 8 saatliktir ve `httpOnly` cookie'de tutulur. Giriş denemesi dakikada 5 ile sınırlıdır.
+- **Kimlik doğrulama:** Sanctum token'ları. Admin token'ı 8 saatliktir ve `httpOnly` cookie'de tutulur. Giriş denemesi dakikada 5 ile sınırlıdır (anahtar: e-posta + IP). Panel üzerinden gelen istekler backend'e panel container'ının IP'siyle ulaştığı için sınır fiilen e-posta başına uygulanır. `X-Forwarded-For` başlığına bilinçli olarak güvenilmez, çünkü istemci tarafından sahtelenebilir.
 - **Servisler arası erişim:** Eğitim Portalı, Personel Sistemi'ne yalnızca okuma yetkili bir servis token'ıyla (`SERVICE_TOKEN`) bağlanır. Personel verisini değiştiremez, atama anında bir kopya (snapshot) saklar.
 - **Ağ:** Dışarıya yalnızca `frontend` ve `egitim-portal` açıktır. Veritabanları ve Personel Sistemi `127.0.0.1`'e bağlıdır, Docker iç ağında `http://<servis-adı>:8000` ile konuşulur.
 - **Gizli bilgi:** `.env` imaja girmez, git'e girmez. Tüm ayarlar çalışma zamanında env ile verilir.
@@ -88,15 +88,19 @@ docker compose up -d personel-db egitim-db
 
 # 2. Personel Sistemi (egitim-portal için klasörü, DB_PORT=5434 ve --port=8002 olarak değiştirin)
 cd personel-service
+composer install
 cp .env.example .env && php artisan key:generate
 # .env içinde: DB_CONNECTION=pgsql, DB_HOST=127.0.0.1, DB_PORT=5433,
-# DB_DATABASE=personel, DB_USERNAME=personel, DB_PASSWORD=<PS_DB_PASSWORD>
-composer install && php artisan migrate --seed && php artisan serve --port=8001
+# DB_DATABASE=personel, DB_USERNAME=personel, DB_PASSWORD=<PS_DB_PASSWORD>,
+# SERVICE_TOKEN=<en az 40 karakter, örn. openssl rand -hex 20>
+php artisan migrate --seed && php artisan serve --port=8001
 
 # 3. Panel
 cd frontend
 npm install && npm run dev
 ```
+
+Yerelde iki tarafın servis token'ı eşleşmelidir: `personel-service/.env` içindeki `SERVICE_TOKEN=<değer>` (seed sırasında kaydedilir) ile `egitim-portal/.env` içindeki `PERSONNEL_API_TOKEN=<aynı değer>`. Eğitim Portalı için ayrıca `PERSONNEL_API_URL=http://127.0.0.1:8001` verin.
 
 `frontend/.env.local` içinde backend adresleri: `PERSONNEL_API_URL=http://127.0.0.1:8001`, `EDUCATION_API_URL=http://127.0.0.1:8002`.
 

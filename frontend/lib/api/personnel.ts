@@ -18,11 +18,11 @@ export function createPersonnel(input: PersonnelInput) {
 }
 
 export function updatePersonnel(id: number, input: PersonnelInput) {
-  return apiFetch<{ data: Personnel }>("personnel", `/api/admin/personnel/${id}`, { method: "PUT", body: input });
+  return apiFetch<{ data: Personnel }>("personnel", `/api/admin/personnel/${encodeURIComponent(String(id))}`, { method: "PUT", body: input });
 }
 
 export function deletePersonnel(id: number) {
-  return apiFetch<void>("personnel", `/api/admin/personnel/${id}`, { method: "DELETE" });
+  return apiFetch<void>("personnel", `/api/admin/personnel/${encodeURIComponent(String(id))}`, { method: "DELETE" });
 }
 
 export function listAdminDepartments() {
@@ -34,9 +34,9 @@ export function createDepartment(name: string) {
 }
 
 export function updateDepartment(id: number, name: string) {
-  return apiFetch<unknown>("personnel", `/api/admin/departments/${id}`, { method: "PUT", body: { name } });
+  return apiFetch<unknown>("personnel", `/api/admin/departments/${encodeURIComponent(String(id))}`, { method: "PUT", body: { name } });
 }
 
 export function deleteDepartment(id: number) {
-  return apiFetch<void>("personnel", `/api/admin/departments/${id}`, { method: "DELETE" });
+  return apiFetch<void>("personnel", `/api/admin/departments/${encodeURIComponent(String(id))}`, { method: "DELETE" });
 }

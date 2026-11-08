@@ -17,3 +17,14 @@ export function validate<S extends z.ZodType>(
 export function formToObject(fd: FormData): Record<string, FormDataEntryValue> {
   return Object.fromEntries(fd.entries());
 }
+
+export const idSchema = z.coerce.number().int().positive();
+
+/** Pozitif tamsayı id ise sayıyı, değilse null döndürür. */
+export function parseId(value: unknown): number | null {
+  if (typeof value === "string" && !/^\d+$/.test(value)) return null;
+  const r = idSchema.safeParse(value);
+  return r.success ? r.data : null;
+}
+
+export const INVALID_ID: ActionResult = { ok: false, message: "Geçersiz kayıt." };

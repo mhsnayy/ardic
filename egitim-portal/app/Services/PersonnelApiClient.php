@@ -7,6 +7,7 @@ use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Single access point to the Personnel System service API.
@@ -161,6 +162,13 @@ class PersonnelApiClient
 
         if ($response->status() === 404) {
             return null;
+        }
+        if (in_array($response->status(), [401, 403], true)) {
+            Log::error('Personel Sistemi servis isteği reddedildi; PERSONNEL_API_TOKEN yanlış veya yetkisiz olabilir.', [
+                'status' => $response->status(), 'path' => $path,
+            ]);
+        } elseif ($response->status() === 429) {
+            Log::warning('Personel Sistemi servis isteği hız sınırına takıldı (429).', ['path' => $path]);
         }
         if ($response->failed()) {
             throw new PersonnelUnavailableException;

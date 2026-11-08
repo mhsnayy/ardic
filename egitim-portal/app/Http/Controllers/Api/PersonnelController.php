@@ -16,6 +16,7 @@ class PersonnelController extends Controller
 {
     public function index(Request $request, PersonnelApiClient $client): JsonResponse
     {
+        $request->validate(['department_id' => ['nullable', 'integer', 'min:1']]);
         $departmentId = $request->filled('department_id') ? (int) $request->query('department_id') : null;
         $search = mb_strtolower(trim((string) $request->query('search', '')));
 

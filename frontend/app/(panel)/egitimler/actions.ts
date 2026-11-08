@@ -15,7 +15,7 @@ import {
   updateEducation,
 } from "@/lib/api/education";
 import type { AssignResult } from "@/lib/api/types";
-import { formToObject, validate } from "@/lib/validate";
+import { INVALID_ID, formToObject, parseId, validate } from "@/lib/validate";
 
 const educationSchema = z.object({
   name: z.string().trim().min(1, "Eğitim adı zorunludur.").max(255, "En fazla 255 karakter olabilir."),
@@ -43,7 +43,9 @@ export async function createEducationAction(_prev: ActionState, fd: FormData): P
   return result;
 }
 
-export async function updateEducationAction(id: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
+export async function updateEducationAction(raw_id: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  const id = parseId(raw_id);
+  if (id === null) return INVALID_ID;
   const v = validate(educationSchema, formToObject(fd));
   if (!v.ok) return v.result;
   const result = await mutate(async () => {
@@ -55,7 +57,9 @@ export async function updateEducationAction(id: number, _prev: ActionState, fd: 
   return result;
 }
 
-export async function deleteEducationAction(id: number): Promise<ActionResult> {
+export async function deleteEducationAction(raw_id: number): Promise<ActionResult> {
+  const id = parseId(raw_id);
+  if (id === null) return INVALID_ID;
   const result = await mutate(async () => {
     await deleteEducation(id);
     return "Eğitim silindi.";
@@ -65,7 +69,9 @@ export async function deleteEducationAction(id: number): Promise<ActionResult> {
 }
 
 /** Detay sayfasından silme: başarılıysa listeye döner. */
-export async function deleteEducationAndLeaveAction(id: number): Promise<ActionResult> {
+export async function deleteEducationAndLeaveAction(raw_id: number): Promise<ActionResult> {
+  const id = parseId(raw_id);
+  if (id === null) return INVALID_ID;
   const result = await deleteEducationAction(id);
   if (result.ok) redirect("/egitimler");
   return result;
@@ -75,9 +81,11 @@ function assignMessage(r: AssignResult): string {
   return `${r.created.length} kişi atandı, ${r.already_assigned.length} kişi zaten atanmıştı, ${r.not_found.length} kişi bulunamadı.`;
 }
 
-const idsSchema = z.array(z.number().int().positive()).min(1, "En az bir personel seçin.");
+const idsSchema = z.array(z.coerce.number().int().positive()).min(1, "En az bir personel seçin.");
 
-export async function assignPersonnelAction(educationId: number, ids: number[]): Promise<ActionResult> {
+export async function assignPersonnelAction(raw_educationId: number, ids: number[]): Promise<ActionResult> {
+  const educationId = parseId(raw_educationId);
+  if (educationId === null) return INVALID_ID;
   const v = validate(idsSchema, ids);
   if (!v.ok) return { ok: false, message: "En az bir personel seçin." };
   const result = await mutate(async () => assignMessage(await assignPersonnel(educationId, v.data)));
@@ -86,10 +94,11 @@ export async function assignPersonnelAction(educationId: number, ids: number[]):
 }
 
 /** EP-2: departman bazında toplu atama. Id'ler Eğitim Portalı'nın /api/personnel?department_id uç noktasından alınır. */
-export async function assignDepartmentAction(educationId: number, departmentId: number): Promise<ActionResult> {
-  if (!Number.isInteger(departmentId) || departmentId <= 0) {
-    return { ok: false, message: "Bir departman seçin." };
-  }
+export async function assignDepartmentAction(raw_educationId: number, raw_departmentId: number): Promise<ActionResult> {
+  const educationId = parseId(raw_educationId);
+  if (educationId === null) return INVALID_ID;
+  const departmentId = parseId(raw_departmentId);
+  if (departmentId === null) return INVALID_ID;
   const result = await mutate(async () => {
     const list = await fetchPersonnelByDepartment(departmentId);
     if (list.meta.personnel_source === "unavailable") {
@@ -105,7 +114,9 @@ export async function assignDepartmentAction(educationId: number, departmentId: 
 
 const statusSchema = z.enum(["assigned", "in_progress", "completed"]);
 
-export async function updateStatusAction(assignmentId: number, status: string): Promise<ActionResult> {
+export async function updateStatusAction(raw_assignmentId: number, status: string): Promise<ActionResult> {
+  const assignmentId = parseId(raw_assignmentId);
+  if (assignmentId === null) return INVALID_ID;
   const v = validate(statusSchema, status);
   if (!v.ok) return { ok: false, message: "Geçersiz durum." };
   const result = await mutate(async () => {
@@ -116,7 +127,9 @@ export async function updateStatusAction(assignmentId: number, status: string): 
   return result;
 }
 
-export async function deleteAssignmentAction(assignmentId: number): Promise<ActionResult> {
+export async function deleteAssignmentAction(raw_assignmentId: number): Promise<ActionResult> {
+  const assignmentId = parseId(raw_assignmentId);
+  if (assignmentId === null) return INVALID_ID;
   const result = await mutate(async () => {
     await deleteAssignment(assignmentId);
     return "Atama kaldırıldı.";

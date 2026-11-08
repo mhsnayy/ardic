@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { ActionResult, ActionState } from "@/lib/action-result";
 import { mutate } from "@/lib/api/client";
 import { createPersonnel, deletePersonnel, updatePersonnel } from "@/lib/api/personnel";
-import { formToObject, validate } from "@/lib/validate";
+import { INVALID_ID, formToObject, parseId, validate } from "@/lib/validate";
 
 const schema = z.object({
   first_name: z.string().trim().min(1, "Ad zorunludur.").max(100, "Ad en fazla 100 karakter olabilir."),
@@ -29,7 +29,9 @@ export async function createPersonnelAction(_prev: ActionState, fd: FormData): P
   return result;
 }
 
-export async function updatePersonnelAction(id: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
+export async function updatePersonnelAction(raw_id: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  const id = parseId(raw_id);
+  if (id === null) return INVALID_ID;
   const v = validate(schema, formToObject(fd));
   if (!v.ok) return v.result;
   const result = await mutate(async () => {
@@ -40,7 +42,9 @@ export async function updatePersonnelAction(id: number, _prev: ActionState, fd: 
   return result;
 }
 
-export async function deletePersonnelAction(id: number): Promise<ActionResult> {
+export async function deletePersonnelAction(raw_id: number): Promise<ActionResult> {
+  const id = parseId(raw_id);
+  if (id === null) return INVALID_ID;
   const result = await mutate(async () => {
     await deletePersonnel(id);
     return "Personel silindi.";

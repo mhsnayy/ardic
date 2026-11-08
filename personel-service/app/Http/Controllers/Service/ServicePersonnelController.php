@@ -12,6 +12,8 @@ class ServicePersonnelController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
+        $request->validate(['department_id' => 'nullable|integer']);
+
         $personnel = Personnel::query()
             ->with('department')
             ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->query('department_id')))

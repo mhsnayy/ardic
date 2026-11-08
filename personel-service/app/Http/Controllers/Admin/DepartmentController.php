@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DepartmentRequest;
 use App\Http\Resources\DepartmentResource;
 use App\Models\Department;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -31,11 +32,17 @@ class DepartmentController extends Controller
 
     public function destroy(Department $department): Response|JsonResponse
     {
+        $conflict = response()->json(['message' => 'Bu departmanda personel bulunduğu için silinemez.'], 409);
+
         if ($department->personnel()->exists()) {
-            return response()->json(['message' => 'Bu departmanda personel bulunduğu için silinemez.'], 409);
+            return $conflict;
         }
 
-        $department->delete();
+        try {
+            $department->delete();
+        } catch (QueryException) {
+            return $conflict;
+        }
 
         return response()->noContent();
     }
