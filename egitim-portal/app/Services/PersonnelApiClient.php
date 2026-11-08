@@ -15,6 +15,8 @@ class PersonnelApiClient
 {
     private const TTL_SECONDS = 300;
 
+    private const HEALTH_KEY = 'personnel:health';
+
     /** Cached read (5 min) with "last good" fallback. */
     public function list(?int $departmentId = null): PersonnelResult
     {
@@ -75,6 +77,10 @@ class PersonnelApiClient
 
     private function read(string $key, Closure $fetch, mixed $empty): PersonnelResult
     {
+        if (! $this->isUp()) {
+            return $this->fallback($key, $empty);
+        }
+
         $fresh = Cache::get('personnel:fresh:'.$key);
         if ($fresh !== null) {
             return new PersonnelResult($fresh, PersonnelResult::LIVE);
@@ -83,11 +89,7 @@ class PersonnelApiClient
         try {
             $data = $fetch();
         } catch (PersonnelUnavailableException) {
-            $lastGood = Cache::get('personnel:last_good:'.$key);
-
-            return $lastGood !== null
-                ? new PersonnelResult($lastGood, PersonnelResult::STALE)
-                : new PersonnelResult($empty, PersonnelResult::UNAVAILABLE);
+            return $this->fallback($key, $empty);
         }
 
         if ($data !== null) {
@@ -96,6 +98,41 @@ class PersonnelApiClient
         }
 
         return new PersonnelResult($data, PersonnelResult::LIVE);
+    }
+
+    private function fallback(string $key, mixed $empty): PersonnelResult
+    {
+        $lastGood = Cache::get('personnel:last_good:'.$key);
+
+        return $lastGood !== null
+            ? new PersonnelResult($lastGood, PersonnelResult::STALE)
+            : new PersonnelResult($empty, PersonnelResult::UNAVAILABLE);
+    }
+
+    /** Cheap reachability probe (GET /up), result cached for a short time. */
+    private function isUp(): bool
+    {
+        $cached = Cache::get(self::HEALTH_KEY);
+        if ($cached !== null) {
+            return (bool) $cached;
+        }
+
+        $timeout = (int) config('services.personnel.health_timeout', 2);
+        try {
+            $up = Http::timeout($timeout)->connectTimeout($timeout)
+                ->get(rtrim((string) config('services.personnel.url'), '/').'/up')
+                ->successful();
+        } catch (ConnectionException) {
+            $up = false;
+        }
+        $this->markHealth($up);
+
+        return $up;
+    }
+
+    private function markHealth(bool $up): void
+    {
+        Cache::put(self::HEALTH_KEY, $up, (int) config('services.personnel.health_ttl', 15));
     }
 
     /**
@@ -112,8 +149,15 @@ class PersonnelApiClient
                 ->timeout(5)
                 ->get(rtrim((string) config('services.personnel.url'), '/').$path, $query);
         } catch (ConnectionException $e) {
+            $this->markHealth(false);
             throw new PersonnelUnavailableException(previous: $e);
         }
+
+        if ($response->serverError()) {
+            $this->markHealth(false);
+            throw new PersonnelUnavailableException;
+        }
+        $this->markHealth(true);
 
         if ($response->status() === 404) {
             return null;

@@ -17,6 +17,8 @@ return [
     'personnel' => [
         'url' => env('PERSONNEL_API_URL', 'http://127.0.0.1:8001'),
         'token' => env('PERSONNEL_API_TOKEN'),
+        'health_timeout' => 2,
+        'health_ttl' => 15,
     ],
 
     'postmark' => [

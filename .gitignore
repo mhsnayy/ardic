@@ -28,3 +28,6 @@ yedek.sql
 .idea/
 .DS_Store
 Thumbs.db
+
+# Editör ayarları
+.vscode/

@@ -20,6 +20,14 @@ function maxAgeFor(expiresAt: string): number {
 }
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const result = await doLogin(formData);
+  if (result && !result.ok) {
+    return { ...result, values: { email: String(formData.get("email") ?? "") } };
+  }
+  return result;
+}
+
+async function doLogin(formData: FormData): Promise<ActionState> {
   const v = validate(schema, formToObject(formData));
   if (!v.ok) return v.result;
   const { email, password } = v.data;

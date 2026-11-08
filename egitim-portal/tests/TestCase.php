@@ -42,6 +42,7 @@ abstract class TestCase extends BaseTestCase
     {
         $people ??= $this->people();
         $this->httpFake([
+            '*/up' => Http::response('ok'),
             '*/api/service/departments' => Http::response(['data' => [['id' => 10, 'name' => 'İK'], ['id' => 20, 'name' => 'Bilgi İşlem']]]),
             '*/api/service/personnel/*' => function ($request) use ($people) {
                 $id = (int) basename($request->url());

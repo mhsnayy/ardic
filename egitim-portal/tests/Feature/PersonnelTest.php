@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Enums\AssignmentStatus;
+use App\Exceptions\PersonnelUnavailableException;
 use App\Models\Education;
+use App\Services\PersonnelApiClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
@@ -106,7 +108,61 @@ class PersonnelTest extends TestCase
         $this->getJson('/api/personnel', $this->h);
         $this->getJson('/api/personnel', $this->h)->assertJsonPath('meta.personnel_source', 'live');
 
-        Http::assertSentCount(1);
+        Http::assertSentCount(2); // 1 health check + 1 data call
+    }
+
+    public function test_stale_when_health_check_fails_even_if_cache_is_fresh(): void
+    {
+        $this->fakePersonnel();
+        $this->getJson('/api/personnel', $this->h)->assertJsonPath('meta.personnel_source', 'live');
+        $this->getJson('/api/departments', $this->h)->assertJsonPath('meta.personnel_source', 'live');
+
+        Cache::forget('personnel:health');
+        $this->httpFake(['*/up' => Http::response('', 503)]);
+
+        $this->getJson('/api/personnel', $this->h)->assertOk()
+            ->assertJsonPath('meta.personnel_source', 'stale')->assertJsonCount(3, 'data');
+        $this->getJson('/api/departments', $this->h)->assertOk()
+            ->assertJsonPath('meta.personnel_source', 'stale')->assertJsonCount(2, 'data');
+    }
+
+    public function test_unavailable_when_health_check_fails_and_no_last_good(): void
+    {
+        $this->httpFake(['*/up' => fn () => throw new ConnectionException('down')]);
+
+        $this->getJson('/api/personnel', $this->h)->assertOk()
+            ->assertJsonPath('meta.personnel_source', 'unavailable')->assertJsonPath('data', []);
+    }
+
+    public function test_read_is_stale_right_after_failed_live_fetch(): void
+    {
+        $this->fakePersonnel();
+        $this->getJson('/api/personnel', $this->h)->assertJsonPath('meta.personnel_source', 'live');
+
+        $this->httpFake(['*' => fn () => throw new ConnectionException('down')]);
+        try {
+            app(PersonnelApiClient::class)->fetchAllLive();
+            $this->fail('expected exception');
+        } catch (PersonnelUnavailableException) {
+        }
+
+        // health flag is now "down": fresh cache is bypassed without any further probe
+        $this->httpFake(['*' => Http::response('unexpected', 500)]);
+        $this->getJson('/api/personnel', $this->h)->assertJsonPath('meta.personnel_source', 'stale')->assertJsonCount(3, 'data');
+        Http::assertNothingSent();
+    }
+
+    public function test_back_to_live_when_health_recovers(): void
+    {
+        $this->fakePersonnel();
+        $this->getJson('/api/personnel', $this->h)->assertJsonPath('meta.personnel_source', 'live');
+
+        Cache::put('personnel:health', false, 15);
+        $this->getJson('/api/personnel', $this->h)->assertJsonPath('meta.personnel_source', 'stale');
+
+        Cache::forget('personnel:health'); // health TTL expired
+        $this->fakePersonnel();
+        $this->getJson('/api/personnel', $this->h)->assertJsonPath('meta.personnel_source', 'live')->assertJsonCount(3, 'data');
     }
 
     public function test_education_list_works_when_personnel_system_is_down(): void

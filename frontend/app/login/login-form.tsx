@@ -12,6 +12,8 @@ export function LoginForm({ expired }: { expired: boolean }) {
   const emailError = state && !state.ok ? state.fieldErrors?.email?.[0] : undefined;
   const passwordError = state && !state.ok ? state.fieldErrors?.password?.[0] : undefined;
 
+  const email = state && !state.ok ? (state.values?.email ?? "") : "";
+
   return (
     <form action={formAction} className="space-y-4">
       {expired && !state && (
@@ -26,7 +28,16 @@ export function LoginForm({ expired }: { expired: boolean }) {
       )}
       <div className="space-y-1.5">
         <Label htmlFor="email">E-posta</Label>
-        <Input id="email" name="email" type="email" autoComplete="username" required aria-invalid={!!emailError} />
+        <Input
+          key={email}
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="username"
+          defaultValue={email}
+          required
+          aria-invalid={!!emailError}
+        />
         {emailError && <p className="text-sm text-destructive">{emailError}</p>}
       </div>
       <div className="space-y-1.5">
