@@ -4,6 +4,7 @@ import type {
   AssignResult,
   Assignment,
   Content,
+  LearningLink,
   UploadKind,
   UploadTarget,
   AssignmentStatus,
@@ -138,4 +139,12 @@ export function reorderContents(educationId: number, ids: number[]) {
 
 export function deleteContent(id: number) {
   return apiFetch<void>("education", `/api/contents/${eid(id)}`, { method: "DELETE" });
+}
+
+export function createLearningLink(assignmentId: number) {
+  return apiFetch<LearningLink>("education", `/api/assignments/${eid(assignmentId)}/learning-link`, { method: "POST" });
+}
+
+export function revokeLearningLink(assignmentId: number) {
+  return apiFetch<void>("education", `/api/assignments/${eid(assignmentId)}/learning-link`, { method: "DELETE" });
 }

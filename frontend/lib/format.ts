@@ -42,3 +42,10 @@ export function formatDuration(seconds: number | undefined | null): string | nul
   const r = String(s % 60).padStart(2, "0");
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${r}` : `${m}:${r}`;
 }
+
+export function formatDay(value: string | null | undefined): string {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" });
+}

@@ -12,7 +12,8 @@ import {
   listEpDepartments,
   listPersonnelProgress,
 } from "@/lib/api/education";
-import { formatDate, formatPercent } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+import { formatDate, formatDay, formatPercent } from "@/lib/format";
 import { ConfirmButton, FormDialog } from "@/components/forms";
 import { EducationFields } from "@/components/education-fields";
 import { PageHeader, PersonnelSourceAlert, ProgressCell, StatusBadge } from "@/components/ui-bits";
@@ -27,6 +28,8 @@ import {
 import { deleteContentAction, reorderContentsAction, requestUploadAction, createContentAction } from "../content-actions";
 import { AddContentDialog } from "./add-content-dialog";
 import { ContentList } from "./content-list";
+import { createLearningLinkAction, revokeLearningLinkAction } from "../link-actions";
+import { LearningLinkDialog } from "./learning-link-dialog";
 import { AssignDialog } from "./assign-dialog";
 import { StatusSelect } from "./status-select";
 
@@ -171,12 +174,23 @@ export default async function EducationDetailPage({ params }: PageProps<"/egitim
                   <div className="flex flex-col gap-1.5">
                     <StatusBadge status={a.status} label={a.status_label} />
                     <StatusSelect value={a.status} action={updateStatusAction.bind(null, a.id)} />
+                    {a.learning_link && (
+                      <Badge variant="secondary" className="w-fit">
+                        Link aktif · {formatDay(a.learning_link.expires_at)}&apos;ya kadar
+                      </Badge>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>{formatDate(a.assigned_at)}</TableCell>
                 <TableCell>{formatDate(a.completed_at)}</TableCell>
                 <TableCell>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
+                    <LearningLinkDialog
+                      personnelName={a.personnel_name}
+                      expiresAt={a.learning_link?.expires_at ?? null}
+                      create={createLearningLinkAction.bind(null, a.id)}
+                      revoke={revokeLearningLinkAction.bind(null, a.id)}
+                    />
                     <ConfirmButton
                       action={deleteAssignmentAction.bind(null, a.id)}
                       label="Kaldır"

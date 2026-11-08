@@ -42,6 +42,8 @@ export type Education = {
   contents_count: number;
 };
 
+export type LearningLinkInfo = { expires_at: string; created_at: string };
+
 export type Assignment = {
   id: number;
   education_id: number;
@@ -53,6 +55,7 @@ export type Assignment = {
   status_label: string;
   assigned_at: string;
   completed_at: string | null;
+  learning_link?: LearningLinkInfo | null;
 };
 
 export type PersonnelProgress = { total: number; completed: number; completion_rate: number };
@@ -101,4 +104,43 @@ export type UploadTarget = {
   headers: Record<string, string>;
   expires_at: string;
   max_bytes: number;
+};
+
+export type LearningLink = { token: string; url: string; expires_at: string };
+
+export type LearnProgress = {
+  last_position_seconds: number;
+  max_position_seconds: number;
+  completed: boolean;
+  completed_at: string | null;
+};
+
+export type LearnContent = {
+  id: number;
+  kind: ContentKind;
+  title: string;
+  is_required: boolean;
+  sort_order: number;
+  properties: Content["properties"];
+  playback_url: string | null;
+  progress: LearnProgress;
+};
+
+export type LearnSummary = { required_total: number; required_completed: number; completed: boolean };
+
+export type Learning = {
+  assignment: { id: number; status: AssignmentStatus; status_label: string; personnel_name: string };
+  education: { id: number; name: string; type_label: string; description: string | null };
+  contents: LearnContent[];
+  summary: LearnSummary;
+};
+
+export type ProgressResult = {
+  content_id: number;
+  last_position_seconds: number;
+  max_position_seconds: number;
+  completed: boolean;
+  assignment_status: AssignmentStatus;
+  assignment_status_label: string;
+  summary: LearnSummary;
 };
