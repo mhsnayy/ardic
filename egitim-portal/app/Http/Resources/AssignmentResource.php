@@ -20,6 +20,10 @@ class AssignmentResource extends JsonResource
             'status_label' => $this->status->label(),
             'assigned_at' => $this->assigned_at?->toIso8601String(),
             'completed_at' => $this->completed_at?->toIso8601String(),
+            'learning_link' => $this->activeLearningLink ? [
+                'expires_at' => $this->activeLearningLink->expires_at->toIso8601String(),
+                'created_at' => $this->activeLearningLink->created_at->toIso8601String(),
+            ] : null, // never exposes the token
             'education' => $this->whenLoaded('education', fn () => [
                 'id' => $this->education->id,
                 'name' => $this->education->name,

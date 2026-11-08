@@ -19,7 +19,7 @@ class AssignmentController extends Controller
     public function index(Education $education)
     {
         return AssignmentResource::collection(
-            $education->assignments()->orderBy('personnel_name')->orderBy('id')->get()
+            $education->assignments()->with('activeLearningLink')->orderBy('personnel_name')->orderBy('id')->get()
         );
     }
 

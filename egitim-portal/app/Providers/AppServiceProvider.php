@@ -35,6 +35,12 @@ class AppServiceProvider extends ServiceProvider
             'user' => User::class, // Sanctum tokenable_type
         ]);
 
+        // Keyed by token hash (behind Next every request shares one IP).
+        RateLimiter::for('learn', fn (Request $request) => Limit::perMinute(120)
+            ->by($request->header('X-Learning-Token')
+                ? 'learn:'.hash('sha256', (string) $request->header('X-Learning-Token'))
+                : 'learn-ip:'.$request->ip()));
+
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)
             ->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip())
             ->response(fn (Request $request, array $headers) => response()->json([

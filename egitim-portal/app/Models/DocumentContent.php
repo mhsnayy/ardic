@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Contracts\ContentType;
+use App\Models\Concerns\CompletesOnOpen;
 use App\Models\Concerns\DeletesMedia;
+use App\Models\Concerns\ServesMedia;
 use Illuminate\Database\Eloquent\Model;
 
 class DocumentContent extends Model implements ContentType
 {
-    use DeletesMedia;
+    use CompletesOnOpen, DeletesMedia, ServesMedia; // opened = completed
 
     protected $fillable = ['media_driver', 'media_path', 'mime_type', 'size_bytes'];
 
@@ -20,12 +22,6 @@ class DocumentContent extends Model implements ContentType
     public function kind(): string
     {
         return 'document';
-    }
-
-    /** Opened = a progress row with completed_at set. */
-    public function isCompletedBy(ContentProgress $p): bool
-    {
-        return $p->completed_at !== null;
     }
 
     public function toContentProperties(): array

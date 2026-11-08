@@ -57,7 +57,7 @@ class PersonnelController extends Controller
 
     public function assignments(int $id, PersonnelApiClient $client): JsonResponse
     {
-        $assignments = EducationAssignment::with('education')
+        $assignments = EducationAssignment::with(['education', 'activeLearningLink'])
             ->where('personnel_id', $id)
             ->orderByDesc('assigned_at')->orderByDesc('id')
             ->get();

@@ -3,10 +3,15 @@
 namespace App\Models;
 
 use App\Contracts\ContentType;
+use App\Media\MediaManager;
+use App\Models\Concerns\CompletesOnOpen;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class LinkContent extends Model implements ContentType
 {
+    use CompletesOnOpen; // clicked = completed
+
     protected $fillable = ['url'];
 
     public function kind(): string
@@ -14,10 +19,9 @@ class LinkContent extends Model implements ContentType
         return 'link';
     }
 
-    /** Clicked = a progress row with completed_at set. */
-    public function isCompletedBy(ContentProgress $p): bool
+    public function playbackUrl(MediaManager $media, DateTimeInterface $exp): ?string
     {
-        return $p->completed_at !== null;
+        return null; // the address is in properties.url
     }
 
     public function toContentProperties(): array

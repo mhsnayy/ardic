@@ -2,7 +2,10 @@
 
 namespace Tests;
 
+use App\Models\Education;
+use App\Models\EducationContent;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
@@ -15,6 +18,16 @@ abstract class TestCase extends BaseTestCase
         $user = User::factory()->create();
 
         return ['Authorization' => 'Bearer '.$user->createToken('t', $abilities)->plainTextToken];
+    }
+
+    protected function makeContent(Education $edu, Model $contentable, int $order = 1, bool $required = true, string $title = 'İçerik'): EducationContent
+    {
+        $c = new EducationContent(['title' => $title, 'sort_order' => $order, 'is_required' => $required]);
+        $c->education()->associate($edu);
+        $c->contentable()->associate($contentable);
+        $c->save();
+
+        return $c;
     }
 
     /** @return array<int, array<string, mixed>> */
