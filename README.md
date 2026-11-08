@@ -116,6 +116,24 @@ cd frontend && npm run lint && npx next typegen && npx tsc --noEmit && npm run b
 
 CI (`.github/workflows/ci.yml`) her push ve PR'da aynı kontrolleri çalıştırır, ardından tüm yığını `docker compose up --build` ile kaldırıp `/login` sayfasını doğrular.
 
+## Faz 2: içerik yükleme ve medya
+
+Bir eğitime video (mp4/webm, en çok 200 MB), PDF (en çok 50 MB) veya bağlantı eklenebilir. Dosyayı tarayıcı Eğitim Portalı'na doğrudan yükler (kısa süreli imzalı URL, ham `PUT`); Next.js yalnızca imzayı ister.
+
+- **Depolama:** Medya `ep-storage` volume'unda (`/app/storage/app/media`) tutulur. Veritabanı yedeği medyayı kapsamaz; volume'u da yedekleyin (compose proje adı `personel-egitim`):
+
+  ```bash
+  # Yedek
+  docker run --rm -v personel-egitim_ep-storage:/data -v "$PWD":/backup alpine tar czf /backup/medya.tgz -C /data app/media
+  # Geri yükleme
+  docker run --rm -v personel-egitim_ep-storage:/data -v "$PWD":/backup alpine tar xzf /backup/medya.tgz -C /data
+  ```
+
+- **Öğrenme linki** `PUBLIC_FRONTEND_URL` ile üretilir.
+- **Raspberry Pi:** Tarayıcı medyayı ve yüklemeyi doğrudan `PUBLIC_EDUCATION_URL` adresinden (8002) yapar; bu adres tarayıcıdan erişilebilir olmalıdır (`localhost` yazmayın).
+- **Temizlik:** `php artisan media:prune` Eğitim Portalı her açıldığında çalışır; içeriğe bağlanmamış, 24 saatten eski yüklemeleri siler. Hata verirse açılışı engellemez.
+- **Limitler:** Caddy istek gövdesi 210 MB ile sınırlıdır, gövde okuma zaman aşımı 15 dakikadır; PHP `max_execution_time` ve `max_input_time` 600 sn.
+
 ## API özeti
 
 Tüm yanıtlar JSON'dur. Hatalar `{message}`, doğrulama hataları `{message, errors}` biçimindedir. Sayfalı yanıtlar `{data, meta}`.
@@ -140,6 +158,16 @@ POST /api/auth/login · POST /api/auth/logout · GET /api/auth/me
 /api/personnel                     GET (Personel Sistemi verisi + kişi başı eğitim sayıları)
 /api/personnel/{id}/assignments    GET
 /api/departments                   GET
+
+# Faz 2
+POST   /api/educations/{id}/uploads         → {upload_id, upload_url, method, headers}
+POST   /api/educations/{id}/contents        {type, title, is_required, upload_id | url}
+PATCH  /api/educations/{id}/contents/order · DELETE /api/contents/{id}
+POST   /api/assignments/{id}/learning-link  → {token, expires_at} · DELETE (iptal)
+PUT    /uploads/{id}?signature=...          tarayıcıdan doğrudan yükleme (CORS: FRONTEND_URL)
+GET    /api/learn                           header X-Learning-Token: içerikler + ilerleme + playback_url
+POST   /api/learn/contents/{id}/progress    {position, duration}
+GET    /media/{path}?signature=...          Range destekli stream
 ```
 
 Sağlık kontrolü: her iki Laravel servisinde `GET /up`.

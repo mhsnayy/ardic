@@ -3,10 +3,18 @@ set -eu
 cd /app
 
 # Volume ilk mount'ta bos olabilir: storage iskeletini yeniden olustur.
-mkdir -p storage/app/private storage/app/public \
+mkdir -p storage/app/private storage/app/public storage/app/media \
     storage/framework/cache/data storage/framework/sessions storage/framework/views \
     storage/logs bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
+
+# Buyuk yuklemeler (200 MB ham PUT): govde limiti ~210 MB, yavas baglantilar
+# icin govde okuma zaman asimi 15 dk. Varsayilan Caddyfile'da limit/zaman asimi
+# yoktur; sinirsiz birakmamak icin acikca ayarlanir.
+NL='
+'
+export CADDY_GLOBAL_OPTIONS="servers {${NL}timeouts {${NL}read_body 15m${NL}}${NL}}"
+export CADDY_SERVER_EXTRA_DIRECTIVES="request_body {${NL}max_size 210MB${NL}}"
 
 # 1. APP_KEY bossa uret ve storage/app/.app_key icinde sakla.
 KEY_FILE=storage/app/.app_key
@@ -30,5 +38,8 @@ php artisan db:seed --force
 
 # 4. Config cache.
 php artisan config:cache
+
+# 5. Baglanmamis eski yuklemeleri temizle (idempotent); hata acilisi engellemez.
+php artisan media:prune || echo "UYARI: media:prune basarisiz, devam ediliyor" >&2
 
 exec "$@"
